@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import Combine
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var viewModel: UsageViewModel!
@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var eventMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        setupEditMenu()
         viewModel = UsageViewModel()
 
         // Status item
@@ -54,6 +55,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        // Resize popover when switching between setup/usage views
+        viewModel.$isSetupComplete
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, self.popover.isShown, let button = self.statusItem.button else { return }
+                self.popover.performClose(nil)
+                DispatchQueue.main.async {
+                    self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+                }
+            }
+            .store(in: &cancellables)
+
         // Handle share actions — close popover first, then perform action
         viewModel.$pendingShareAction
             .compactMap { $0 }
@@ -93,6 +107,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             weeklyPercent: viewModel.weeklyPercent,
             weeklyReset: viewModel.weeklyResetDescription
         )
+    }
+
+    // MARK: - Edit Menu (enables Cmd+C/V/X/A in text fields)
+
+    private func setupEditMenu() {
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+
+        let editMenuItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+        editMenuItem.submenu = editMenu
+
+        if NSApp.mainMenu == nil {
+            NSApp.mainMenu = NSMenu()
+        }
+        NSApp.mainMenu?.addItem(editMenuItem)
     }
 
     // MARK: - Popover
@@ -158,10 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let settingsView = SettingsView(viewModel: viewModel) { [weak self] in
-            self?.settingsWindow?.orderOut(nil)
-            DispatchQueue.main.async {
-                self?.settingsWindow = nil
-            }
+            self?.closeSettingsWindow()
         }
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 540, height: 480),
@@ -172,9 +201,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(rootView: settingsView)
         window.center()
         window.title = "Claudephobia Settings"
-        window.level = .floating
+        window.delegate = self
+        window.isReleasedWhenClosed = false
+
+        // Become regular app so macOS manages window layering normally
+        NSApp.setActivationPolicy(.regular)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow = window
+    }
+
+    private func closeSettingsWindow() {
+        settingsWindow?.orderOut(nil)
+        DispatchQueue.main.async { [weak self] in
+            self?.settingsWindow = nil
+            // Revert to accessory app (no dock icon)
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard (notification.object as? NSWindow) === settingsWindow else { return }
+        closeSettingsWindow()
     }
 }

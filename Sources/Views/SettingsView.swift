@@ -5,6 +5,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case notifications = "Notifications"
     case account = "Account"
     case data = "Data"
+    case about = "About"
 
     var id: String { rawValue }
 
@@ -14,6 +15,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .notifications: return "bell"
         case .account: return "key"
         case .data: return "externaldrive"
+        case .about: return "info.circle"
         }
     }
 }
@@ -30,6 +32,16 @@ struct SettingsView: View {
         HStack(spacing: 0) {
             // Sidebar
             VStack(spacing: 2) {
+                AppIconView(size: 52)
+
+                Text("Fear of hitting Claude limits")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 6)
+                    .padding(.bottom, 8)
+
                 ForEach(SettingsTab.allCases) { tab in
                     sidebarButton(tab)
                 }
@@ -59,13 +71,13 @@ struct SettingsView: View {
                 HStack {
                     Spacer()
                     Button("Done") { onClose() }
-                        .keyboardShortcut(.return)
+                        .keyboardShortcut(.escape)
                 }
             }
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 540, height: 480)
+        .frame(width: 540, height: 560)
         .alert("Reset all data?", isPresented: $showResetConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Reset Everything", role: .destructive) {
@@ -91,9 +103,10 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
+            .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(selectedTab == tab ? Color.accentColor : Color.clear)
+                    .fill(selectedTab == tab ? Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -112,6 +125,8 @@ struct SettingsView: View {
             accountTab
         case .data:
             dataTab
+        case .about:
+            aboutTab
         }
     }
 
@@ -167,13 +182,28 @@ struct SettingsView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Button("Quit Claudephobia") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .foregroundColor(.red)
+
+                Text("Close the app completely. It will not monitor usage until reopened.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
         }
+        .tint(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
     }
 
     // MARK: - Notifications
 
     private var notificationsTab: some View {
         VStack(alignment: .leading, spacing: 20) {
+
             Toggle("Enable notifications", isOn: Binding(
                 get: { viewModel.notificationsEnabled },
                 set: { _ in viewModel.toggleNotifications() }
@@ -188,12 +218,12 @@ struct SettingsView: View {
                         .fontWeight(.medium)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack {
+                        HStack(spacing: 6) {
                             Image(systemName: "exclamationmark.triangle")
                                 .foregroundColor(.orange)
-                                .frame(width: 18)
+                                .frame(width: 16)
                             Text("Warning at")
-                                .frame(width: 80, alignment: .leading)
+                                .frame(width: 70, alignment: .leading)
                             Picker("", selection: Binding(
                                 get: { viewModel.warningThreshold },
                                 set: { viewModel.setWarningThreshold($0) }
@@ -203,15 +233,16 @@ struct SettingsView: View {
                                 Text("90%").tag(0.90)
                             }
                             .pickerStyle(.segmented)
-                            .frame(width: 180)
+                            .frame(width: 170)
+                            Spacer()
                         }
 
-                        HStack {
+                        HStack(spacing: 6) {
                             Image(systemName: "flame")
                                 .foregroundColor(.red)
-                                .frame(width: 18)
+                                .frame(width: 16)
                             Text("Critical at")
-                                .frame(width: 80, alignment: .leading)
+                                .frame(width: 70, alignment: .leading)
                             Picker("", selection: Binding(
                                 get: { viewModel.criticalThreshold },
                                 set: { viewModel.setCriticalThreshold($0) }
@@ -221,7 +252,8 @@ struct SettingsView: View {
                                 Text("100%").tag(1.00)
                             }
                             .pickerStyle(.segmented)
-                            .frame(width: 180)
+                            .frame(width: 170)
+                            Spacer()
                         }
                     }
                 }
@@ -269,6 +301,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .tint(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
     }
 
     // MARK: - Account
@@ -292,6 +325,13 @@ struct SettingsView: View {
                 SecureField("Paste new session key...", text: $newSessionKey)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(.body, design: .monospaced))
+                    .onSubmit {
+                        let key = newSessionKey.trimmingCharacters(in: .whitespaces)
+                        if !key.isEmpty {
+                            viewModel.updateSessionKey(key)
+                            newSessionKey = ""
+                        }
+                    }
 
                 Button("Update Session Key") {
                     let key = newSessionKey.trimmingCharacters(in: .whitespaces)
@@ -302,18 +342,40 @@ struct SettingsView: View {
                 }
                 .disabled(newSessionKey.trimmingCharacters(in: .whitespaces).isEmpty)
             }
+        }
+    }
 
-            Divider()
+    // MARK: - About
 
+    private var aboutTab: some View {
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("About")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
                 Text("Claudephobia reads your usage data directly from the Claude API using your session cookie. No data is sent to any third party. No cost involved.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Open source and free forever.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                HStack(spacing: 4) {
+                    Text("Built by")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("skendaj")
+                        .font(.caption)
+                        .foregroundColor(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
+                        .onTapGesture {
+                            if let url = URL(string: "https://github.com/skendaj") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                }
             }
         }
     }

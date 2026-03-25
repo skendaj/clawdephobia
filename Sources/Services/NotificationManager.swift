@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// Sends native macOS notifications when usage crosses warning or critical thresholds,
@@ -80,14 +81,34 @@ final class NotificationManager {
     // MARK: - Private
 
     private func send(title: String, body: String) {
-        let escapedTitle = title.replacingOccurrences(of: "\"", with: "\\\"")
-        let escapedBody = body.replacingOccurrences(of: "\"", with: "\\\"")
+        let notification = NSUserNotification()
+        notification.title = title
+        notification.informativeText = body
+        notification.soundName = NSUserNotificationDefaultSoundName
 
-        let script = "display notification \"\(escapedBody)\" with title \"\(escapedTitle)\" sound name \"default\""
+        // Attach the app icon so notifications show the Claudephobia icon
+        if let iconPath = Self.appIconURL {
+            notification.contentImage = NSImage(contentsOf: iconPath)
+        }
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script]
-        try? process.run()
+        NSUserNotificationCenter.default.deliver(notification)
     }
+
+    /// Resolves the app icon from the bundle or the source Resources directory.
+    private static var appIconURL: URL? = {
+        // When running as a .app bundle
+        if let bundlePath = Bundle.main.url(forResource: "AppIcon", withExtension: "icns") {
+            return bundlePath
+        }
+        // When running the debug binary directly, look relative to the executable
+        let execURL = URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
+        let projectRoot = execURL
+            .deletingLastPathComponent() // debug/
+            .deletingLastPathComponent() // .build/
+        let resourceIcon = projectRoot.appendingPathComponent("Resources/AppIcon.icns")
+        if FileManager.default.fileExists(atPath: resourceIcon.path) {
+            return resourceIcon
+        }
+        return nil
+    }()
 }

@@ -260,7 +260,15 @@ struct ShareCardView: View {
     }
 
     private func tierName(_ tier: String) -> String {
-        tier.replacingOccurrences(of: "_", with: " ")
+        let lower = tier.lowercased()
+        if lower.contains("max_20x") || lower.contains("max20x") { return "Claude Max 20x" }
+        if lower.contains("max_5x") || lower.contains("max5x") { return "Claude Max 5x" }
+        if lower.contains("max") { return "Claude Max" }
+        if lower.contains("pro") { return "Claude Pro" }
+        if lower.contains("team") { return "Claude Team" }
+        if lower.contains("enterprise") { return "Claude Enterprise" }
+        if lower.contains("free") || lower.contains("default") { return "Claude Free" }
+        return tier.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
     private var formattedTimestamp: String {

@@ -24,6 +24,14 @@ final class UsageViewModel: ObservableObject {
     @Published var sonnetPercent: Double?
     @Published var sonnetResetDescription: String?
 
+    // OAuth Apps weekly
+    @Published var oauthAppsPercent: Double?
+    @Published var oauthAppsResetDescription: String?
+
+    // Cowork weekly
+    @Published var coworkPercent: Double?
+    @Published var coworkResetDescription: String?
+
     // Extra usage
     @Published var extraUsagePercent: Double?
     @Published var extraUsageResetDescription: String?
@@ -100,6 +108,31 @@ final class UsageViewModel: ObservableObject {
         apiClient?.updateSessionKey(key)
         errorMessage = nil
         fetchUsage()
+    }
+
+    func clearSessionKey() {
+        KeychainHelper.delete(key: "session_key")
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        scraper = nil
+        apiClient = nil
+        notificationManager.reset()
+        sessionPercent = 0
+        weeklyPercent = 0
+        opusPercent = nil
+        sonnetPercent = nil
+        oauthAppsPercent = nil
+        coworkPercent = nil
+        extraUsagePercent = nil
+        rateLimitTier = nil
+        sessionResetDescription = ""
+        weeklyResetDescription = ""
+        lastUpdated = nil
+        errorMessage = nil
+        lastUsageData = nil
+        isPacingWarning = false
+        UserDefaults.standard.set(false, forKey: "claudephobia.setup_complete")
+        isSetupComplete = false
     }
 
     func testConnection(sessionKey: String) async throws {
@@ -262,6 +295,8 @@ final class UsageViewModel: ObservableObject {
         weeklyPercent = 0
         opusPercent = nil
         sonnetPercent = nil
+        oauthAppsPercent = nil
+        coworkPercent = nil
         extraUsagePercent = nil
         rateLimitTier = nil
         sessionResetDescription = ""
@@ -301,6 +336,22 @@ final class UsageViewModel: ObservableObject {
         } else {
             sonnetPercent = nil
             sonnetResetDescription = nil
+        }
+
+        if let oauthApps = data.sevenDayOAuthApps {
+            oauthAppsPercent = oauthApps.percentUsed
+            oauthAppsResetDescription = formatResetTime(oauthApps.resetsAt)
+        } else {
+            oauthAppsPercent = nil
+            oauthAppsResetDescription = nil
+        }
+
+        if let cowork = data.sevenDayCowork {
+            coworkPercent = cowork.percentUsed
+            coworkResetDescription = formatResetTime(cowork.resetsAt)
+        } else {
+            coworkPercent = nil
+            coworkResetDescription = nil
         }
 
         if let extra = data.extraUsage {

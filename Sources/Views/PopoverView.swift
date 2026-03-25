@@ -1,5 +1,9 @@
 import SwiftUI
 
+extension Color {
+    static let accent = Color(red: 0xDE / 255.0, green: 0x73 / 255.0, blue: 0x56 / 255.0)
+}
+
 struct PopoverView: View {
     @ObservedObject var viewModel: UsageViewModel
 
@@ -19,9 +23,7 @@ struct PopoverView: View {
 
     private var setupView: some View {
         VStack(spacing: 14) {
-            Image(systemName: "chart.bar.fill")
-                .font(.system(size: 28))
-                .foregroundColor(.blue)
+            AppIconView(size: 48)
 
             Text("Claudephobia")
                 .font(.headline)
@@ -65,15 +67,17 @@ struct PopoverView: View {
             }
 
             Button(action: connect) {
-                if isTesting {
-                    ProgressView()
-                        .scaleEffect(0.5)
-                        .frame(width: 60, height: 14)
-                } else {
-                    Text("Connect")
-                        .frame(maxWidth: .infinity)
+                ZStack {
+                    Text("Connect").opacity(isTesting ? 0 : 1)
+                    if isTesting {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
             .disabled(sessionKey.trimmingCharacters(in: .whitespaces).isEmpty || isTesting)
         }
         .padding(16)
@@ -86,6 +90,7 @@ struct PopoverView: View {
 
         isTesting = true
         errorMessage = nil
+        sessionKey = ""
 
         let client = ClaudeAPIClient(sessionKey: key)
         Task { @MainActor in
@@ -105,18 +110,15 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    AppIconView(size: 14)
                     Text("Claudephobia")
-                        .font(.headline)
-                    if let tier = viewModel.rateLimitTier {
-                        Text(tierDisplayName(tier))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
+                        .font(.system(size: 14, weight: .semibold))
                 }
                 Spacer()
                 Button(action: { viewModel.showSettingsWindow = true }) {
                     Image(systemName: "gear")
+                        .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -162,6 +164,28 @@ struct PopoverView: View {
                 )
             }
 
+            // OAuth Apps usage
+            if let oauthPct = viewModel.oauthAppsPercent {
+                Divider().padding(.vertical, 10)
+                usageRow(
+                    title: "Weekly \u{2014} OAuth Apps",
+                    percent: oauthPct,
+                    resetDescription: viewModel.oauthAppsResetDescription ?? "",
+                    tint: barColor(oauthPct)
+                )
+            }
+
+            // Cowork usage
+            if let coworkPct = viewModel.coworkPercent {
+                Divider().padding(.vertical, 10)
+                usageRow(
+                    title: "Weekly \u{2014} Cowork",
+                    percent: coworkPct,
+                    resetDescription: viewModel.coworkResetDescription ?? "",
+                    tint: barColor(coworkPct)
+                )
+            }
+
             // Extra usage
             if let extraPct = viewModel.extraUsagePercent {
                 Divider().padding(.vertical, 10)
@@ -180,9 +204,9 @@ struct PopoverView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
-                        .font(.caption)
+                        .font(.system(size: 12))
                     Text(error)
-                        .font(.caption)
+                        .font(.system(size: 12))
                         .foregroundColor(.orange)
                         .lineLimit(2)
                 }
@@ -190,56 +214,34 @@ struct PopoverView: View {
             }
 
             // Footer
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 if let updated = viewModel.lastUpdated {
                     Text(timeAgo(updated))
-                        .font(.caption2)
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary.opacity(0.6))
                 }
                 if viewModel.isLoading {
                     ProgressView()
-                        .scaleEffect(0.4)
-                        .frame(width: 10, height: 10)
+                        .scaleEffect(0.5)
+                        .frame(width: 12, height: 12)
                 }
                 Spacer()
 
-                Menu {
-                    Button { viewModel.pendingShareAction = .shareImage } label: {
-                        Label("Share Image\u{2026}", systemImage: "photo")
-                    }
-                    Button { viewModel.pendingShareAction = .copyImage } label: {
-                        Label("Copy to Clipboard", systemImage: "doc.on.doc")
-                    }
-                    Button { viewModel.pendingShareAction = .saveImage } label: {
-                        Label("Save as PNG\u{2026}", systemImage: "arrow.down.doc")
-                    }
-                    Divider()
-                    Button { viewModel.pendingShareAction = .exportJSON } label: {
-                        Label("Export JSON\u{2026}", systemImage: "curlybraces")
-                    }
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.caption)
+                Button(action: { viewModel.clearSessionKey() }) {
+                    Label("Clear Key", systemImage: "key.slash")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
-                .menuStyle(.borderlessButton)
-                .frame(width: 16)
-                .help("Share usage card")
+                .buttonStyle(.plain)
+                .help("Clear session key and return to setup")
 
                 Button(action: { viewModel.fetchUsage() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption)
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
                 .help("Refresh")
-
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary.opacity(0.6))
-                .font(.caption)
             }
         }
         .padding(16)
@@ -252,10 +254,10 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text(title)
-                    .font(.system(.subheadline, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                 Spacer()
                 Text("\(Int(percent * 100))%")
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(tint)
             }
 
@@ -264,7 +266,7 @@ struct PopoverView: View {
 
             if !resetDescription.isEmpty {
                 Text(resetDescription)
-                    .font(.caption2)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
         }
@@ -279,9 +281,16 @@ struct PopoverView: View {
     }
 
     private func tierDisplayName(_ tier: String) -> String {
-        tier.replacingOccurrences(of: "_", with: " ")
-            .replacingOccurrences(of: "claude ai", with: "Claude AI")
-            .capitalized
+        let lower = tier.lowercased()
+        if lower.contains("max_20x") || lower.contains("max20x") { return "Claude Max 20x Plan" }
+        if lower.contains("max_5x") || lower.contains("max5x") { return "Claude Max 5x Plan" }
+        if lower.contains("max") { return "Claude Max Plan" }
+        if lower.contains("pro") { return "Claude Pro Plan" }
+        if lower.contains("team") { return "Claude Team Plan" }
+        if lower.contains("enterprise") { return "Claude Enterprise Plan" }
+        if lower.contains("free") || lower.contains("default") { return "Claude Free Plan" }
+        // Fallback: clean up the raw string
+        return tier.replacingOccurrences(of: "_", with: " ").capitalized + " Plan"
     }
 
     private func timeAgo(_ date: Date) -> String {
@@ -293,6 +302,36 @@ struct PopoverView: View {
         let hours = minutes / 60
         if hours == 1 { return "1 hr ago" }
         return "\(hours) hr ago"
+    }
+}
+
+// MARK: - Progress Bar
+
+struct AppIconView: View {
+    var size: CGFloat = 48
+
+    private static let cachedImage: NSImage? = {
+        guard let url = Bundle.module.url(forResource: "icon", withExtension: "png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.size = NSSize(width: 256, height: 256)
+        return image
+    }()
+
+    var body: some View {
+        Group {
+            if let nsImage = Self.cachedImage {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: size * 0.6))
+                    .foregroundColor(.accent)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
     }
 }
 
