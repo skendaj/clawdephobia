@@ -144,7 +144,7 @@ final class UsageScraper {
             return Date().addingTimeInterval(3600)
         }()
 
-        return RateLimitInfo(percentUsed: min(1.0, max(0, percent)), resetsAt: resetsAt)
+        return RateLimitInfo(percentUsed: max(0, percent), resetsAt: resetsAt)
     }
 
     // MARK: - HTTP

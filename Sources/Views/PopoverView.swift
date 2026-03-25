@@ -372,15 +372,53 @@ struct UsageProgressBar: View {
     let value: Double
     var tint: Color = .blue
 
+    private var isOverflow: Bool { value > 1.0 }
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.gray.opacity(0.15))
 
-                Capsule()
-                    .fill(tint)
-                    .frame(width: max(0, geo.size.width * CGFloat(min(1, value))))
+                if isOverflow {
+                    // Full bar with striped pattern to indicate overflow
+                    OverflowStripes(tint: tint)
+                        .clipShape(Capsule())
+                } else {
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: max(0, geo.size.width * CGFloat(value)))
+                }
+            }
+        }
+    }
+}
+
+// Diagonal stripe pattern for overflow bars
+struct OverflowStripes: View {
+    let tint: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let stripeWidth: CGFloat = 4
+            let spacing: CGFloat = 6
+            let total = stripeWidth + spacing
+
+            context.fill(
+                Path(CGRect(origin: .zero, size: size)),
+                with: .color(tint)
+            )
+
+            var x: CGFloat = -size.height
+            while x < size.width + size.height {
+                var path = Path()
+                path.move(to: CGPoint(x: x, y: size.height))
+                path.addLine(to: CGPoint(x: x + size.height, y: 0))
+                path.addLine(to: CGPoint(x: x + size.height + stripeWidth, y: 0))
+                path.addLine(to: CGPoint(x: x + stripeWidth, y: size.height))
+                path.closeSubpath()
+                context.fill(path, with: .color(.white.opacity(0.25)))
+                x += total
             }
         }
     }

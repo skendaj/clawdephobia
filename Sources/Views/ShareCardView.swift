@@ -134,9 +134,13 @@ struct ShareCardView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle().fill(barBg)
-                    Rectangle()
-                        .fill(heroColor)
-                        .frame(width: max(0, geo.size.width * CGFloat(min(1, worstPercent))))
+                    if worstPercent > 1.0 {
+                        OverflowStripes(tint: heroColor)
+                    } else {
+                        Rectangle()
+                            .fill(heroColor)
+                            .frame(width: max(0, geo.size.width * CGFloat(worstPercent)))
+                    }
                 }
             }
             .frame(height: 4)
@@ -176,9 +180,13 @@ struct ShareCardView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle().fill(barBg)
-                    Rectangle()
-                        .fill(metricColor(limit.percent))
-                        .frame(width: max(0, geo.size.width * CGFloat(min(1, limit.percent))))
+                    if limit.percent > 1.0 {
+                        OverflowStripes(tint: metricColor(limit.percent))
+                    } else {
+                        Rectangle()
+                            .fill(metricColor(limit.percent))
+                            .frame(width: max(0, geo.size.width * CGFloat(limit.percent)))
+                    }
                 }
             }
             .frame(height: 3)
