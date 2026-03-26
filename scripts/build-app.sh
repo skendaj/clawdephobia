@@ -33,7 +33,7 @@ fi
 
 # Code sign with Developer ID + hardened runtime (required for notarization)
 echo "Signing with: ${SIGNING_IDENTITY}"
-codesign --force --options runtime --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
+codesign --force --options runtime --entitlements Resources/Claudephobia.entitlements --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
 echo "Signed."
 
 # Verify signature
