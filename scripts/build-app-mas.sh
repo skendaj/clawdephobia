@@ -1,0 +1,76 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+APP_NAME="Claudephobia"
+BUILD_DIR=".build/release"
+APP_BUNDLE="dist/${APP_NAME}.app"
+CONTENTS="${APP_BUNDLE}/Contents"
+APP_SIGNING_IDENTITY="${MAS_APP_IDENTITY:-3rd Party Mac Developer Application: Bruno Skendaj (53CZ5753ZD)}"
+INSTALLER_SIGNING_IDENTITY="${MAS_INSTALLER_IDENTITY:-3rd Party Mac Developer Installer: Bruno Skendaj (53CZ5753ZD)}"
+
+echo "Building ${APP_NAME} for Mac App Store..."
+swift build -c release
+
+echo "Creating app bundle..."
+rm -rf dist
+mkdir -p "${CONTENTS}/MacOS"
+mkdir -p "${CONTENTS}/Resources"
+
+# Copy binary
+cp "${BUILD_DIR}/${APP_NAME}" "${CONTENTS}/MacOS/${APP_NAME}"
+
+# Copy icon from SPM resource bundle into app Resources
+RESOURCE_BUNDLE=$(find .build -path "*/release/${APP_NAME}_${APP_NAME}.bundle" -type d | head -1)
+if [ -n "$RESOURCE_BUNDLE" ] && [ -f "$RESOURCE_BUNDLE/icon.png" ]; then
+    cp "$RESOURCE_BUNDLE/icon.png" "${CONTENTS}/Resources/icon.png"
+    echo "App icon (icon.png) included."
+elif [ -f "Sources/Resources/icon.png" ]; then
+    cp "Sources/Resources/icon.png" "${CONTENTS}/Resources/icon.png"
+    echo "App icon (icon.png) included from source."
+else
+    echo "Warning: icon.png not found."
+fi
+
+# Copy Info.plist
+cp Resources/Info.plist "${CONTENTS}/Info.plist"
+
+# Copy app icon if it exists
+if [ -f "Resources/AppIcon.icns" ]; then
+    cp "Resources/AppIcon.icns" "${CONTENTS}/Resources/AppIcon.icns"
+    echo "App icon included."
+else
+    echo "Warning: Resources/AppIcon.icns not found. App will have no icon."
+fi
+
+# Embed provisioning profile
+PROV_PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.provisionprofile 2>/dev/null | head -1)
+if [ -n "$PROV_PROFILE" ]; then
+    cp "$PROV_PROFILE" "${CONTENTS}/embedded.provisionprofile"
+    echo "Provisioning profile embedded."
+else
+    echo "ERROR: No provisioning profile found. Install one first."
+    exit 1
+fi
+
+# Strip quarantine attributes from all files in the bundle
+xattr -cr "${APP_BUNDLE}"
+echo "Quarantine attributes stripped."
+
+# Code sign with Mac App Store certificate + sandbox entitlements
+echo "Signing with: ${APP_SIGNING_IDENTITY}"
+codesign --force --options runtime --entitlements Resources/Claudephobia-MAS.entitlements --sign "${APP_SIGNING_IDENTITY}" "${APP_BUNDLE}"
+echo "Signed."
+
+# Verify signature
+codesign --verify --verbose "${APP_BUNDLE}"
+echo "Signature verified."
+
+# Create installer package for App Store Connect upload
+echo "Creating installer package..."
+productbuild --component "${APP_BUNDLE}" /Applications --sign "${INSTALLER_SIGNING_IDENTITY}" "dist/${APP_NAME}.pkg"
+
+echo ""
+echo "Done: dist/${APP_NAME}.pkg (ready for App Store Connect upload)"
+echo "Upload: drag dist/${APP_NAME}.pkg into Transporter.app (download from Mac App Store)"

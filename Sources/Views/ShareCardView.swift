@@ -342,7 +342,7 @@ enum ShareCardRenderer {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.png]
         panel.nameFieldStringValue = "claude-usage-\(dateStamp()).png"
-        panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
+        panel.directoryURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
         panel.level = .floating
 
         if panel.runModal() == .OK, let url = panel.url {

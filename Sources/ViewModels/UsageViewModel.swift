@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import AppKit
 import Network
+import ServiceManagement
 
 enum ShareAction: Int {
     case shareImage = 0
@@ -68,7 +69,7 @@ final class UsageViewModel: ObservableObject {
     /// Notify when limits reset
     @Published var notifyOnReset: Bool = true
 
-    /// Launch at login via LaunchAgent
+    /// Launch at login via SMAppService
     @Published var launchAtLogin: Bool = false
 
     // MARK: - Services
@@ -289,13 +290,17 @@ final class UsageViewModel: ObservableObject {
     }
 
     func toggleLaunchAtLogin() {
-        launchAtLogin.toggle()
-        UserDefaults.standard.set(launchAtLogin, forKey: "claudephobia.launch_at_login")
-        if launchAtLogin {
-            installLaunchAgent()
-        } else {
-            removeLaunchAgent()
+        do {
+            if launchAtLogin {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            print("Failed to toggle login item: \(error)")
         }
+        launchAtLogin = SMAppService.mainApp.status == .enabled
+        UserDefaults.standard.set(launchAtLogin, forKey: "claudephobia.launch_at_login")
     }
 
     // MARK: - JSON Export
@@ -341,7 +346,7 @@ final class UsageViewModel: ObservableObject {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "claudephobia-usage-\(dateStamp()).json"
-        panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
+        panel.directoryURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
         panel.level = .floating
 
         if panel.runModal() == .OK, let url = panel.url {
@@ -365,7 +370,8 @@ final class UsageViewModel: ObservableObject {
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
 
         KeychainHelper.delete(key: "session_key")
-        removeLaunchAgent()
+        try? SMAppService.mainApp.unregister()
+        removeLegacyLaunchAgent()
         refreshTimer?.invalidate()
         refreshTimer = nil
         countdownTimer?.invalidate()
@@ -662,7 +668,7 @@ final class UsageViewModel: ObservableObject {
         refreshInterval = UserDefaults.standard.object(forKey: "claudephobia.refresh_interval") as? Int ?? 300
         warningThreshold = UserDefaults.standard.object(forKey: "claudephobia.warning_threshold") as? Double ?? 0.75
         criticalThreshold = UserDefaults.standard.object(forKey: "claudephobia.critical_threshold") as? Double ?? 0.90
-        launchAtLogin = UserDefaults.standard.bool(forKey: "claudephobia.launch_at_login")
+        launchAtLogin = SMAppService.mainApp.status == .enabled
         notifyOnReset = UserDefaults.standard.object(forKey: "claudephobia.notify_on_reset") as? Bool ?? true
     }
 
@@ -718,6 +724,8 @@ final class UsageViewModel: ObservableObject {
             KeychainHelper.save(key: "session_key", value: legacyKey)
             UserDefaults.standard.removeObject(forKey: "claudemeter.session_key")
         }
+
+        removeLegacyLaunchAgent()
     }
 
     private var storedSessionKey: String? {
@@ -734,44 +742,13 @@ final class UsageViewModel: ObservableObject {
         return f.string(from: Date())
     }
 
-    // MARK: - LaunchAgent
+    // MARK: - Legacy LaunchAgent Cleanup
 
-    private var launchAgentDir: String {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/LaunchAgents").path
-    }
-
-    private var launchAgentPath: String {
-        "\(launchAgentDir)/com.claudephobia.app.plist"
-    }
-
-    private func installLaunchAgent() {
-        let execPath = ProcessInfo.processInfo.arguments[0]
-
-        let plist = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" \
-        "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>Label</key>
-            <string>com.claudephobia.app</string>
-            <key>ProgramArguments</key>
-            <array>
-                <string>\(execPath)</string>
-            </array>
-            <key>RunAtLoad</key>
-            <true/>
-        </dict>
-        </plist>
-        """
-
-        try? FileManager.default.createDirectory(atPath: launchAgentDir,
-                                                  withIntermediateDirectories: true)
-        try? plist.write(toFile: launchAgentPath, atomically: true, encoding: .utf8)
-    }
-
-    private func removeLaunchAgent() {
-        try? FileManager.default.removeItem(atPath: launchAgentPath)
+    private func removeLegacyLaunchAgent() {
+        // Skip in sandboxed builds — ~/Library/LaunchAgents is inaccessible
+        guard !ProcessInfo.processInfo.environment.keys.contains("APP_SANDBOX_CONTAINER_ID") else { return }
+        let path = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/LaunchAgents/com.claudephobia.app.plist").path
+        try? FileManager.default.removeItem(atPath: path)
     }
 }

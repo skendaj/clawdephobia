@@ -85,7 +85,7 @@ struct SettingsView: View {
                 onClose()
             }
         } message: {
-            Text("This deletes all Claudephobia data including your session key from Keychain and removes the LaunchAgent.")
+            Text("This deletes all Claudephobia data including your session key from Keychain and removes the login item.")
         }
     }
 
@@ -178,7 +178,7 @@ struct SettingsView: View {
                     set: { _ in viewModel.toggleLaunchAtLogin() }
                 ))
 
-                Text("Creates a LaunchAgent to start Claudephobia on login")
+                Text("Start Claudephobia automatically when you log in")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -406,7 +406,7 @@ struct SettingsView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
 
-                Text("Remove all Claudephobia data including session key, settings, and LaunchAgent.")
+                Text("Remove all Claudephobia data including session key, settings, and login item.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
