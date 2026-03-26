@@ -69,6 +69,11 @@ final class UsageViewModel: ObservableObject {
     /// Notify when limits reset
     @Published var notifyOnReset: Bool = true
 
+    /// Phone push notifications via ntfy.sh
+    @Published var pushNotificationsEnabled: Bool = false
+    @Published var pushTopic: String = ""
+    @Published var pushServerURL: String = "https://ntfy.sh"
+
     /// Launch at login via SMAppService
     @Published var launchAtLogin: Bool = false
 
@@ -285,6 +290,34 @@ final class UsageViewModel: ObservableObject {
         UserDefaults.standard.set(notifyOnReset, forKey: "claudephobia.notify_on_reset")
     }
 
+    func togglePushNotifications() {
+        pushNotificationsEnabled.toggle()
+        UserDefaults.standard.set(pushNotificationsEnabled, forKey: "claudephobia.push_enabled")
+        syncPushSettings()
+    }
+
+    func setPushTopic(_ topic: String) {
+        pushTopic = topic
+        UserDefaults.standard.set(topic, forKey: "claudephobia.push_topic")
+        syncPushSettings()
+    }
+
+    func setPushServerURL(_ url: String) {
+        pushServerURL = url
+        UserDefaults.standard.set(url, forKey: "claudephobia.push_server_url")
+        syncPushSettings()
+    }
+
+    func sendTestPushNotification() {
+        notificationManager.sendTestPush()
+    }
+
+    private func syncPushSettings() {
+        notificationManager.pushEnabled = pushNotificationsEnabled
+        notificationManager.pushTopic = pushTopic
+        notificationManager.pushServerURL = pushServerURL
+    }
+
     func sendTestNotification() {
         notificationManager.sendTest()
     }
@@ -362,6 +395,8 @@ final class UsageViewModel: ObservableObject {
             "claudephobia.warning_threshold", "claudephobia.critical_threshold",
             "claudephobia.launch_at_login",
             "claudephobia.notify_on_reset",
+            "claudephobia.push_enabled", "claudephobia.push_topic",
+            "claudephobia.push_server_url",
             // Legacy keys
             "claudemeter.setup_complete", "claudemeter.menu_bar_display",
             "claudemeter.notifications_enabled", "claudemeter.session_key",
@@ -670,6 +705,10 @@ final class UsageViewModel: ObservableObject {
         criticalThreshold = UserDefaults.standard.object(forKey: "claudephobia.critical_threshold") as? Double ?? 0.90
         launchAtLogin = SMAppService.mainApp.status == .enabled
         notifyOnReset = UserDefaults.standard.object(forKey: "claudephobia.notify_on_reset") as? Bool ?? true
+        pushNotificationsEnabled = UserDefaults.standard.bool(forKey: "claudephobia.push_enabled")
+        pushTopic = UserDefaults.standard.string(forKey: "claudephobia.push_topic") ?? ""
+        pushServerURL = UserDefaults.standard.string(forKey: "claudephobia.push_server_url") ?? "https://ntfy.sh"
+        syncPushSettings()
     }
 
     // MARK: - Version Reset
@@ -689,6 +728,8 @@ final class UsageViewModel: ObservableObject {
             "claudephobia.notifications_enabled", "claudephobia.refresh_interval",
             "claudephobia.warning_threshold", "claudephobia.critical_threshold",
             "claudephobia.launch_at_login", "claudephobia.notify_on_reset",
+            "claudephobia.push_enabled", "claudephobia.push_topic",
+            "claudephobia.push_server_url",
         ]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
 

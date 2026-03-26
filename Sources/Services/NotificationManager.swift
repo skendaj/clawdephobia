@@ -3,14 +3,30 @@ import Foundation
 import UserNotifications
 
 /// Sends native macOS notifications when usage crosses warning or critical thresholds,
-/// and optionally when limits reset.
+/// and optionally when limits reset. Optionally mirrors notifications to phone via ntfy.sh.
 final class NotificationManager {
     private var sentKeys = Set<String>()
+
+    /// Push notification service for phone delivery via ntfy.sh
+    let pushService = PushNotificationService()
+
+    /// Whether to also send push notifications to phone
+    var pushEnabled: Bool = false
+
+    /// The ntfy topic the user subscribed to on their phone
+    var pushTopic: String = ""
+
+    /// The ntfy server URL (default: https://ntfy.sh, or self-hosted)
+    var pushServerURL: String = "https://ntfy.sh"
 
     /// Tracks previous percent values to detect resets (usage dropping significantly)
     private var previousPercents: [String: Double] = [:]
 
+    /// Whether we're running inside a proper .app bundle (UNUserNotificationCenter requires one)
+    private let hasBundle = Bundle.main.bundleIdentifier != nil
+
     func requestPermission() {
+        guard hasBundle else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
@@ -32,7 +48,8 @@ final class NotificationManager {
             sentKeys.insert(critKey)
             send(
                 title: "Claudephobia \u{2014} Critical",
-                body: "\(label) at \(pct)%. You're about to hit your limit."
+                body: "\(label) at \(pct)%. You're about to hit your limit.",
+                priority: 5
             )
         } else if percentUsed >= warningThreshold && !sentKeys.contains(warnKey) {
             sentKeys.insert(warnKey)
@@ -74,6 +91,10 @@ final class NotificationManager {
         )
     }
 
+    func sendTestPush() {
+        pushService.sendTest(topic: pushTopic, serverURL: pushServerURL)
+    }
+
     func sendServiceDown() {
         guard !sentKeys.contains("service-down") else { return }
         sentKeys.insert("service-down")
@@ -94,17 +115,39 @@ final class NotificationManager {
 
     // MARK: - Private
 
-    private func send(title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
+    private func send(title: String, body: String, priority: Int = 3) {
+        if hasBundle {
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
 
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
+            let request = UNNotificationRequest(
+                identifier: UUID().uuidString,
+                content: content,
+                trigger: nil
+            )
+            UNUserNotificationCenter.current().add(request)
+        } else {
+            // Fallback: use osascript for bare binary / debug builds
+            let escapedTitle = title.replacingOccurrences(of: "\"" , with: "\\\"")
+            let escapedBody = body.replacingOccurrences(of: "\"" , with: "\\\"")
+            let script = "display notification \"\(escapedBody)\" with title \"\(escapedTitle)\""
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", script]
+            try? process.run()
+        }
+
+        // Mirror to phone via ntfy.sh
+        if pushEnabled {
+            pushService.send(
+                title: title,
+                body: body,
+                topic: pushTopic,
+                serverURL: pushServerURL,
+                priority: priority
+            )
+        }
     }
 }

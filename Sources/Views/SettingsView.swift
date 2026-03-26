@@ -3,6 +3,7 @@ import SwiftUI
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general = "General"
     case notifications = "Notifications"
+    case phone = "Phone"
     case account = "Account"
     case data = "Data"
     case about = "About"
@@ -13,6 +14,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .general: return "gearshape"
         case .notifications: return "bell"
+        case .phone: return "iphone"
         case .account: return "key"
         case .data: return "externaldrive"
         case .about: return "info.circle"
@@ -77,7 +79,7 @@ struct SettingsView: View {
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 540, height: 560)
+        .frame(width: 540, height: 680)
         .alert("Reset all data?", isPresented: $showResetConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Reset Everything", role: .destructive) {
@@ -121,6 +123,8 @@ struct SettingsView: View {
             generalTab
         case .notifications:
             notificationsTab
+        case .phone:
+            phoneTab
         case .account:
             accountTab
         case .data:
@@ -296,6 +300,93 @@ struct SettingsView: View {
                     }
 
                     Text("Notifications are sent via native macOS alerts. No permission required.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+            }
+        }
+        .tint(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
+    }
+
+    // MARK: - Phone
+
+    private var phoneTab: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Get Claudephobia alerts on your phone via ntfy.sh \u{2014} a free, open-source push service. Works with iOS and Android.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Toggle("Enable phone notifications", isOn: Binding(
+                get: { viewModel.pushNotificationsEnabled },
+                set: { _ in viewModel.togglePushNotifications() }
+            ))
+
+            if viewModel.pushNotificationsEnabled {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Setup")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Install the ntfy app (App Store or Google Play)", systemImage: "1.circle")
+                        Label("Subscribe to a unique topic (e.g. claudephobia-yourname)", systemImage: "2.circle")
+                        Label("Enter that same topic below", systemImage: "3.circle")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Topic")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    TextField("e.g. claudephobia-yourname123", text: Binding(
+                        get: { viewModel.pushTopic },
+                        set: { viewModel.setPushTopic($0) }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+
+                    Text("Use a unique, hard-to-guess name \u{2014} ntfy topics are public by default.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Server URL")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    TextField("https://ntfy.sh", text: Binding(
+                        get: { viewModel.pushServerURL },
+                        set: { viewModel.setPushServerURL($0) }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+
+                    Text("Use https://ntfy.sh (default) or your own self-hosted ntfy server.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Button("Send Test to Phone") {
+                        viewModel.sendTestPushNotification()
+                    }
+                    .disabled(viewModel.pushTopic.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    Text("Critical alerts are sent with urgent priority to break through Do Not Disturb.")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
