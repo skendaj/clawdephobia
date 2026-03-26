@@ -42,6 +42,9 @@ fi
 
 # Code sign with Developer ID + hardened runtime (required for notarization)
 echo "Signing with: ${SIGNING_IDENTITY}"
+if [ -d "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle" ]; then
+    codesign --force --sign "${SIGNING_IDENTITY}" "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle"
+fi
 codesign --force --options runtime --entitlements Resources/Claudephobia.entitlements --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
 echo "Signed."
 

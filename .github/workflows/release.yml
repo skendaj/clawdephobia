@@ -60,10 +60,16 @@ jobs:
             cp "Resources/AppIcon.icns" "${CONTENTS}/Resources/AppIcon.icns"
           fi
 
-          # Sign with Developer ID + hardened runtime + entitlements
+          # Sign resource bundle first, then the app
+          SIGNING_ID="Developer ID Application: Bruno Skendaj (53CZ5753ZD)"
+          if [ -d "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle" ]; then
+            codesign --force --sign "$SIGNING_ID" \
+              "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle"
+          fi
+
           codesign --force --options runtime \
             --entitlements Resources/Claudephobia.entitlements \
-            --sign "Developer ID Application: Bruno Skendaj (53CZ5753ZD)" \
+            --sign "$SIGNING_ID" \
             "${APP}"
 
           codesign --verify --verbose "${APP}"
