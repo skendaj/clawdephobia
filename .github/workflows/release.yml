@@ -142,8 +142,13 @@ jobs:
         if: always()
         run: security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
 
+      - name: Create stable download name
+        run: cp "$ZIP_NAME" Claudephobia.zip
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.ZIP_NAME }}
+          files: |
+            ${{ env.ZIP_NAME }}
+            Claudephobia.zip
           generate_release_notes: true
