@@ -50,26 +50,22 @@ jobs:
           cp .build/release/Claudephobia "${CONTENTS}/MacOS/Claudephobia"
           cp Resources/Info.plist "${CONTENTS}/Info.plist"
 
-          # Copy SPM resource bundle (contains icon.png)
+          # Copy icon from SPM resource bundle into app Resources
           RESOURCE_BUNDLE=$(find .build -path "*/release/Claudephobia_Claudephobia.bundle" -type d | head -1)
-          if [ -n "$RESOURCE_BUNDLE" ]; then
-            cp -R "$RESOURCE_BUNDLE" "${CONTENTS}/MacOS/"
+          if [ -n "$RESOURCE_BUNDLE" ] && [ -f "$RESOURCE_BUNDLE/icon.png" ]; then
+            cp "$RESOURCE_BUNDLE/icon.png" "${CONTENTS}/Resources/icon.png"
+          elif [ -f "Sources/Resources/icon.png" ]; then
+            cp "Sources/Resources/icon.png" "${CONTENTS}/Resources/icon.png"
           fi
 
           if [ -f "Resources/AppIcon.icns" ]; then
             cp "Resources/AppIcon.icns" "${CONTENTS}/Resources/AppIcon.icns"
           fi
 
-          # Sign resource bundle first, then the app
-          SIGNING_ID="Developer ID Application: Bruno Skendaj (53CZ5753ZD)"
-          if [ -d "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle" ]; then
-            codesign --force --sign "$SIGNING_ID" \
-              "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle"
-          fi
-
+          # Sign with Developer ID + hardened runtime + entitlements
           codesign --force --options runtime \
             --entitlements Resources/Claudephobia.entitlements \
-            --sign "$SIGNING_ID" \
+            --sign "Developer ID Application: Bruno Skendaj (53CZ5753ZD)" \
             "${APP}"
 
           codesign --verify --verbose "${APP}"

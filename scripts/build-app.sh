@@ -20,13 +20,16 @@ mkdir -p "${CONTENTS}/Resources"
 # Copy binary
 cp "${BUILD_DIR}/${APP_NAME}" "${CONTENTS}/MacOS/${APP_NAME}"
 
-# Copy SPM resource bundle
+# Copy icon from SPM resource bundle into app Resources
 RESOURCE_BUNDLE=$(find .build -path "*/release/${APP_NAME}_${APP_NAME}.bundle" -type d | head -1)
-if [ -n "$RESOURCE_BUNDLE" ]; then
-    cp -R "$RESOURCE_BUNDLE" "${CONTENTS}/MacOS/"
-    echo "Resource bundle included."
+if [ -n "$RESOURCE_BUNDLE" ] && [ -f "$RESOURCE_BUNDLE/icon.png" ]; then
+    cp "$RESOURCE_BUNDLE/icon.png" "${CONTENTS}/Resources/icon.png"
+    echo "App icon (icon.png) included."
+elif [ -f "Sources/Resources/icon.png" ]; then
+    cp "Sources/Resources/icon.png" "${CONTENTS}/Resources/icon.png"
+    echo "App icon (icon.png) included from source."
 else
-    echo "Warning: SPM resource bundle not found."
+    echo "Warning: icon.png not found."
 fi
 
 # Copy Info.plist
@@ -42,9 +45,6 @@ fi
 
 # Code sign with Developer ID + hardened runtime (required for notarization)
 echo "Signing with: ${SIGNING_IDENTITY}"
-if [ -d "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle" ]; then
-    codesign --force --sign "${SIGNING_IDENTITY}" "${CONTENTS}/MacOS/Claudephobia_Claudephobia.bundle"
-fi
 codesign --force --options runtime --entitlements Resources/Claudephobia.entitlements --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
 echo "Signed."
 
