@@ -405,31 +405,20 @@ struct UsageProgressBar: View {
     }
 }
 
-// Diagonal stripe pattern for overflow bars
+// Striped pattern for overflow bars using simple SwiftUI shapes
 struct OverflowStripes: View {
     let tint: Color
 
     var body: some View {
-        Canvas { context, size in
-            let stripeWidth: CGFloat = 4
-            let spacing: CGFloat = 6
-            let total = stripeWidth + spacing
-
-            context.fill(
-                Path(CGRect(origin: .zero, size: size)),
-                with: .color(tint)
-            )
-
-            var x: CGFloat = -size.height
-            while x < size.width + size.height {
-                var path = Path()
-                path.move(to: CGPoint(x: x, y: size.height))
-                path.addLine(to: CGPoint(x: x + size.height, y: 0))
-                path.addLine(to: CGPoint(x: x + size.height + stripeWidth, y: 0))
-                path.addLine(to: CGPoint(x: x + stripeWidth, y: size.height))
-                path.closeSubpath()
-                context.fill(path, with: .color(.white.opacity(0.25)))
-                x += total
+        ZStack {
+            tint
+            HStack(spacing: 3) {
+                ForEach(0..<20, id: \.self) { _ in
+                    Rectangle()
+                        .fill(Color.white.opacity(0.25))
+                        .frame(width: 3)
+                        .rotationEffect(.degrees(-45))
+                }
             }
         }
     }

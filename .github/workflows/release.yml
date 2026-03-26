@@ -69,10 +69,14 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         timeout-minutes: 30
         run: |
-          zip -r Claudephobia.zip Claudephobia.app
+          VERSION="${GITHUB_REF_NAME}"
+          ZIP_NAME="Claudephobia-${VERSION}.zip"
+          zip -r "$ZIP_NAME" Claudephobia.app
+
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
 
           # Submit for notarization
-          SUBMIT_OUTPUT=$(xcrun notarytool submit Claudephobia.zip \
+          SUBMIT_OUTPUT=$(xcrun notarytool submit "$ZIP_NAME" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_PASSWORD" \
@@ -106,8 +110,8 @@ jobs:
 
             if [ "$STATUS" = "Accepted" ]; then
               xcrun stapler staple Claudephobia.app
-              rm Claudephobia.zip
-              zip -r Claudephobia.zip Claudephobia.app
+              rm "$ZIP_NAME"
+              zip -r "$ZIP_NAME" Claudephobia.app
               echo "NOTARIZED=true" >> "$GITHUB_ENV"
             else
               echo "::warning::Notarization rejected. Fetching log..."
@@ -133,5 +137,5 @@ jobs:
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: Claudephobia.zip
+          files: ${{ env.ZIP_NAME }}
           generate_release_notes: true
