@@ -10,19 +10,54 @@ EXPORT_DIR="dist"
 SIGNING_IDENTITY="Developer ID Application: Bruno Skendaj (53CZ5753ZD)"
 TEAM_ID="53CZ5753ZD"
 
-# Require xcodegen
+# Provisioning profile names (must match names on developer.apple.com exactly)
+PROFILE_APP="Claudephobia Developer ID"
+PROFILE_WIDGET="Claudephobia Widget Developer ID"
+
+# ---------------------------------------------------------------------------
+# Preflight checks
+# ---------------------------------------------------------------------------
+
 if ! command -v xcodegen &>/dev/null; then
-    echo "xcodegen not found. Install it with: brew install xcodegen"
+    echo "❌  xcodegen not found. Install with: brew install xcodegen"
     exit 1
 fi
 
+# Verify profiles are installed locally before wasting time on a build
+check_profile() {
+    local name="$1"
+    local found
+    found=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.provisionprofile" -o -name "*.mobileprovision" 2>/dev/null \
+        | xargs -I{} security cms -D -i {} 2>/dev/null \
+        | grep -A1 "<key>Name</key>" \
+        | grep "<string>${name}</string>" | head -1)
+    if [ -z "$found" ]; then
+        echo "❌  Provisioning profile not found: \"${name}\""
+        echo "    → In Xcode: Settings → Accounts → Download Manual Profiles"
+        echo "    → Or create it at developer.apple.com → Profiles"
+        return 1
+    fi
+    echo "✅  Profile found: ${name}"
+}
+
+echo "Checking provisioning profiles..."
+check_profile "$PROFILE_APP"
+check_profile "$PROFILE_WIDGET"
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
+echo ""
 echo "Generating Xcode project from project.yml..."
 xcodegen generate
 
+echo ""
 echo "Cleaning previous build artifacts..."
 rm -rf dist
 
-echo "Archiving ${APP_NAME} (this includes the widget extension)..."
+echo ""
+echo "Archiving ${APP_NAME} + ClaudephobiaWidget extension..."
 xcodebuild archive \
     -scheme "$SCHEME" \
     -configuration Release \
@@ -30,21 +65,31 @@ xcodebuild archive \
     CODE_SIGN_STYLE=Manual \
     CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
     DEVELOPMENT_TEAM="$TEAM_ID" \
+    PROVISIONING_PROFILE_SPECIFIER="$PROFILE_APP" \
+    "ClaudephobiaWidget:PROVISIONING_PROFILE_SPECIFIER=$PROFILE_WIDGET" \
     -quiet
 
-echo "Exporting app bundle..."
+echo ""
+echo "Exporting signed app bundle..."
 xcodebuild -exportArchive \
     -archivePath "$ARCHIVE_PATH" \
     -exportPath "$EXPORT_DIR" \
     -exportOptionsPlist scripts/ExportOptions.plist \
     -quiet
 
+# ---------------------------------------------------------------------------
+# Verify
+# ---------------------------------------------------------------------------
+
 echo ""
-echo "Verifying signature..."
+echo "Verifying signatures..."
 codesign --verify --verbose "${EXPORT_DIR}/${APP_NAME}.app"
-echo "Verifying widget extension signature..."
 codesign --verify --verbose "${EXPORT_DIR}/${APP_NAME}.app/Contents/PlugIns/ClaudephobiaWidget.appex"
-echo "Signatures verified."
+echo "✅  Signatures verified."
+
+# ---------------------------------------------------------------------------
+# Notarize
+# ---------------------------------------------------------------------------
 
 echo ""
 echo "Creating zip for notarization..."
@@ -58,5 +103,5 @@ echo "Stapling notarization ticket..."
 xcrun stapler staple "${APP_NAME}.app"
 
 echo ""
-echo "Done: dist/${APP_NAME}.app (signed + notarized)"
-echo "Distribution zip: dist/${APP_NAME}.zip"
+echo "✅  Done: dist/${APP_NAME}.app (signed + notarized, widget embedded)"
+echo "    Distribution zip: dist/${APP_NAME}.zip"

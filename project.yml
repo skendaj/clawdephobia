@@ -26,6 +26,7 @@ targets:
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: 53CZ5753ZD
         CODE_SIGN_IDENTITY: "Developer ID Application"
+        PROVISIONING_PROFILE_SPECIFIER: "Claudephobia Developer ID"
     dependencies:
       - target: ClaudephobiaWidget
         embed: true
@@ -46,4 +47,5 @@ targets:
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: 53CZ5753ZD
         CODE_SIGN_IDENTITY: "Developer ID Application"
+        PROVISIONING_PROFILE_SPECIFIER: "Claudephobia Widget Developer ID"
         APPLICATION_EXTENSION_API_ONLY: YES
