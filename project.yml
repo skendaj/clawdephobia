@@ -7,12 +7,15 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+
 targets:
+
   Claudephobia:
     type: application
     platform: macOS
     sources:
       - path: Sources
+      - path: Sources/Shared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.claudephobia.app
@@ -20,3 +23,27 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Resources/Claudephobia.entitlements
         MACOSX_DEPLOYMENT_TARGET: "13.0"
         COMBINE_HIDPI_IMAGES: true
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: 53CZ5753ZD
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+    dependencies:
+      - target: ClaudephobiaWidget
+        embed: true
+        codeSign: true
+
+  ClaudephobiaWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: WidgetExtension
+      - path: Sources/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudephobia.app.widget
+        INFOPLIST_FILE: WidgetExtension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: WidgetExtension/ClaudephobiaWidget.entitlements
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: 53CZ5753ZD
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        APPLICATION_EXTENSION_API_ONLY: YES

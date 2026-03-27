@@ -4,59 +4,52 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP_NAME="Claudephobia"
-BUILD_DIR=".build/release"
-APP_BUNDLE="dist/${APP_NAME}.app"
-CONTENTS="${APP_BUNDLE}/Contents"
+SCHEME="Claudephobia"
+ARCHIVE_PATH="dist/${APP_NAME}.xcarchive"
+EXPORT_DIR="dist"
 SIGNING_IDENTITY="Developer ID Application: Bruno Skendaj (53CZ5753ZD)"
+TEAM_ID="53CZ5753ZD"
 
-echo "Building ${APP_NAME}..."
-swift build -c release
+# Require xcodegen
+if ! command -v xcodegen &>/dev/null; then
+    echo "xcodegen not found. Install it with: brew install xcodegen"
+    exit 1
+fi
 
-echo "Creating app bundle..."
+echo "Generating Xcode project from project.yml..."
+xcodegen generate
+
+echo "Cleaning previous build artifacts..."
 rm -rf dist
-mkdir -p "${CONTENTS}/MacOS"
-mkdir -p "${CONTENTS}/Resources"
 
-# Copy binary
-cp "${BUILD_DIR}/${APP_NAME}" "${CONTENTS}/MacOS/${APP_NAME}"
+echo "Archiving ${APP_NAME} (this includes the widget extension)..."
+xcodebuild archive \
+    -scheme "$SCHEME" \
+    -configuration Release \
+    -archivePath "$ARCHIVE_PATH" \
+    CODE_SIGN_STYLE=Manual \
+    CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+    DEVELOPMENT_TEAM="$TEAM_ID" \
+    -quiet
 
-# Copy icon from SPM resource bundle into app Resources
-RESOURCE_BUNDLE=$(find .build -path "*/release/${APP_NAME}_${APP_NAME}.bundle" -type d | head -1)
-if [ -n "$RESOURCE_BUNDLE" ] && [ -f "$RESOURCE_BUNDLE/icon.png" ]; then
-    cp "$RESOURCE_BUNDLE/icon.png" "${CONTENTS}/Resources/icon.png"
-    echo "App icon (icon.png) included."
-elif [ -f "Sources/Resources/icon.png" ]; then
-    cp "Sources/Resources/icon.png" "${CONTENTS}/Resources/icon.png"
-    echo "App icon (icon.png) included from source."
-else
-    echo "Warning: icon.png not found."
-fi
+echo "Exporting app bundle..."
+xcodebuild -exportArchive \
+    -archivePath "$ARCHIVE_PATH" \
+    -exportPath "$EXPORT_DIR" \
+    -exportOptionsPlist scripts/ExportOptions.plist \
+    -quiet
 
-# Copy Info.plist
-cp Resources/Info.plist "${CONTENTS}/Info.plist"
+echo ""
+echo "Verifying signature..."
+codesign --verify --verbose "${EXPORT_DIR}/${APP_NAME}.app"
+echo "Verifying widget extension signature..."
+codesign --verify --verbose "${EXPORT_DIR}/${APP_NAME}.app/Contents/PlugIns/ClaudephobiaWidget.appex"
+echo "Signatures verified."
 
-# Copy app icon if it exists
-if [ -f "Resources/AppIcon.icns" ]; then
-    cp "Resources/AppIcon.icns" "${CONTENTS}/Resources/AppIcon.icns"
-    echo "App icon included."
-else
-    echo "Warning: Resources/AppIcon.icns not found. App will have no icon."
-fi
-
-# Code sign with Developer ID + hardened runtime (required for notarization)
-echo "Signing with: ${SIGNING_IDENTITY}"
-codesign --force --options runtime --entitlements Resources/Claudephobia.entitlements --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
-echo "Signed."
-
-# Verify signature
-codesign --verify --verbose "${APP_BUNDLE}"
-echo "Signature verified."
-
-# Notarize
 echo ""
 echo "Creating zip for notarization..."
-cd dist
-zip -r "${APP_NAME}.zip" "${APP_NAME}.app"
+cd "$EXPORT_DIR"
+ditto -c -k --keepParent "${APP_NAME}.app" "${APP_NAME}.zip"
 
 echo "Submitting for notarization..."
 xcrun notarytool submit "${APP_NAME}.zip" --keychain-profile "claudephobia-notary" --wait

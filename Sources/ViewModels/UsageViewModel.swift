@@ -3,6 +3,7 @@ import Combine
 import AppKit
 import Network
 import ServiceManagement
+import WidgetKit
 
 enum ShareAction: Int {
     case shareImage = 0
@@ -179,6 +180,16 @@ final class UsageViewModel: ObservableObject {
         consecutiveFailures = 0
         UserDefaults.standard.set(false, forKey: "claudephobia.setup_complete")
         isSetupComplete = false
+
+        // Clear widget data so it shows the setup prompt
+        WidgetSharedData(
+            sessionPercent: 0, weeklyPercent: 0,
+            opusPercent: nil, sonnetPercent: nil,
+            isServiceDown: false, isPacingWarning: false,
+            isSetupComplete: false, lastUpdated: nil,
+            sessionResetDescription: "", weeklyResetDescription: ""
+        ).persist()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func testConnection(sessionKey: String) async throws {
@@ -516,6 +527,21 @@ final class UsageViewModel: ObservableObject {
         // Pacing indicator
         let newPacing = calculatePacingWarning(data)
         updateIfNeeded(&isPacingWarning, newPacing)
+
+        // Sync to widget via App Group
+        WidgetSharedData(
+            sessionPercent: sessionPercent,
+            weeklyPercent: weeklyPercent,
+            opusPercent: opusPercent,
+            sonnetPercent: sonnetPercent,
+            isServiceDown: isServiceDown,
+            isPacingWarning: isPacingWarning,
+            isSetupComplete: isSetupComplete,
+            lastUpdated: Date(),
+            sessionResetDescription: sessionResetDescription,
+            weeklyResetDescription: weeklyResetDescription
+        ).persist()
+        WidgetCenter.shared.reloadAllTimelines()
 
         // Notifications
         if notificationsEnabled {
