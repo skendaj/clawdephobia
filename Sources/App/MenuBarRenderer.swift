@@ -5,24 +5,32 @@ enum MenuBarRenderer {
     private static let iconWidth: CGFloat = 80
 
     static func createImage(sessionPercent: Double, weeklyPercent: Double,
-                            isPacingWarning: Bool, isServiceDown: Bool = false) -> NSImage {
+                            isPacingWarning: Bool, isServiceDown: Bool = false,
+                            progressStyle: Int = 0) -> NSImage {
         let height: CGFloat = 16
 
         let flameImg: NSImage? = isPacingWarning ? createFlameImage() : nil
         let downImg: NSImage? = isServiceDown ? createServiceDownImage() : nil
         let trailingImg = downImg ?? flameImg
         let trailingSpace: CGFloat = trailingImg.map { $0.size.width + 2 } ?? 0
-        let totalWidth = iconWidth + trailingSpace
+
+        let baseWidth: CGFloat = progressStyle == 1 ? 29 : iconWidth
+        let totalWidth = baseWidth + trailingSpace
 
         let image = NSImage(size: NSSize(width: totalWidth, height: height))
         image.lockFocus()
 
-        drawDualBar(session: sessionPercent, weekly: weeklyPercent, width: iconWidth, height: height,
-                    isServiceDown: isServiceDown)
+        if progressStyle == 1 {
+            drawDualCircle(session: sessionPercent, weekly: weeklyPercent, height: height,
+                           isServiceDown: isServiceDown)
+        } else {
+            drawDualBar(session: sessionPercent, weekly: weeklyPercent, width: iconWidth, height: height,
+                        isServiceDown: isServiceDown)
+        }
 
         if let trailing = trailingImg {
             let y = (height - trailing.size.height) / 2
-            trailing.draw(at: NSPoint(x: iconWidth + 2, y: y), from: .zero, operation: .sourceOver, fraction: 1.0)
+            trailing.draw(at: NSPoint(x: baseWidth + 2, y: y), from: .zero, operation: .sourceOver, fraction: 1.0)
         }
 
         image.unlockFocus()
@@ -109,6 +117,49 @@ enum MenuBarRenderer {
         NSBezierPath(ovalIn: NSRect(origin: .zero, size: size)).fill()
         img.unlockFocus()
         return img
+    }
+
+    // MARK: - Dual Circle
+
+    private static func drawDualCircle(session: Double, weekly: Double, height: CGFloat,
+                                       isServiceDown: Bool = false) {
+        let circleSize: CGFloat = 12
+        let gap: CGFloat = 3
+        let padding: CGFloat = 1
+        let y = (height - circleSize) / 2
+        let alpha: CGFloat = isServiceDown ? 0.4 : 1.0
+
+        drawCircleArc(in: NSRect(x: padding, y: y, width: circleSize, height: circleSize),
+                      percent: session, alpha: alpha)
+        drawCircleArc(in: NSRect(x: padding + circleSize + gap, y: y, width: circleSize, height: circleSize),
+                      percent: weekly, alpha: alpha)
+    }
+
+    private static func drawCircleArc(in rect: NSRect, percent: Double, alpha: CGFloat = 1.0) {
+        let center = NSPoint(x: rect.midX, y: rect.midY)
+        let lineWidth: CGFloat = 2.0
+        let radius = rect.width / 2 - lineWidth / 2
+
+        // Background ring
+        let bgPath = NSBezierPath()
+        bgPath.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
+        NSColor.tertiaryLabelColor.withAlphaComponent(0.25).setStroke()
+        bgPath.lineWidth = lineWidth
+        bgPath.stroke()
+
+        // Filled arc — clockwise from top (90°)
+        let safePercent = min(max(percent, 0), 1.0)
+        if safePercent > 0 {
+            let startAngle: CGFloat = 90
+            let endAngle: CGFloat = 90 - CGFloat(safePercent * 360)
+            let fillPath = NSBezierPath()
+            fillPath.appendArc(withCenter: center, radius: radius,
+                               startAngle: startAngle, endAngle: endAngle, clockwise: true)
+            barColor(for: percent).withAlphaComponent(alpha).setStroke()
+            fillPath.lineWidth = lineWidth
+            fillPath.lineCapStyle = .round
+            fillPath.stroke()
+        }
     }
 
     // MARK: - Dual Bar

@@ -33,13 +33,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         // Re-render menu bar when any relevant property changes
         Publishers.CombineLatest(
-            Publishers.CombineLatest4(
-                viewModel.$sessionPercent,
-                viewModel.$weeklyPercent,
-                viewModel.$menuBarDisplayMode,
-                viewModel.$isPacingWarning
+            Publishers.CombineLatest(
+                Publishers.CombineLatest4(
+                    viewModel.$sessionPercent,
+                    viewModel.$weeklyPercent,
+                    viewModel.$menuBarDisplayMode,
+                    viewModel.$isPacingWarning
+                ),
+                viewModel.$isServiceDown
             ),
-            viewModel.$isServiceDown
+            viewModel.$progressStyle
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _, _ in
@@ -95,7 +98,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             sessionPercent: viewModel.sessionPercent,
             weeklyPercent: viewModel.weeklyPercent,
             isPacingWarning: viewModel.isPacingWarning,
-            isServiceDown: viewModel.isServiceDown
+            isServiceDown: viewModel.isServiceDown,
+            progressStyle: viewModel.progressStyle
         )
         button.imagePosition = .imageLeading
 
