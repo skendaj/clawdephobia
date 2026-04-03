@@ -311,23 +311,41 @@ struct PopoverView: View {
     // MARK: - Usage Row
 
     private func usageRow(title: String, percent: Double, resetDescription: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                Spacer()
-                Text("\(Int(percent * 100))%")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(tint)
-            }
+        Group {
+            if viewModel.progressStyle == 1 {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(title)
+                            .font(.system(size: 13, weight: .medium))
+                        if !resetDescription.isEmpty {
+                            Text(resetDescription)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    Spacer()
+                    UsageCircularProgress(value: percent, tint: tint, size: 44)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        Text(title)
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Text("\(Int(percent * 100))%")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(tint)
+                    }
 
-            UsageProgressBar(value: percent, tint: tint)
-                .frame(height: 6)
+                    UsageProgressBar(value: percent, tint: tint)
+                        .frame(height: 6)
 
-            if !resetDescription.isEmpty {
-                Text(resetDescription)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    if !resetDescription.isEmpty {
+                        Text(resetDescription)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
     }
@@ -449,5 +467,43 @@ struct OverflowStripes: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Circular Progress
+
+struct UsageCircularProgress: View {
+    let value: Double
+    var tint: Color = .blue
+    var size: CGFloat = 38
+
+    private var isOverflow: Bool { value > 1.0 }
+    private var safeValue: Double { value.isFinite ? min(value, 1.0) : 0 }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.15), lineWidth: 4)
+
+            Circle()
+                .trim(from: 0, to: CGFloat(safeValue))
+                .stroke(
+                    isOverflow ? AnyShapeStyle(tint.opacity(0.7)) : AnyShapeStyle(tint),
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeOut(duration: 0.3), value: safeValue)
+
+            if isOverflow {
+                Image(systemName: "exclamationmark")
+                    .font(.system(size: size * 0.28, weight: .bold))
+                    .foregroundColor(tint)
+            } else {
+                Text("\(Int(value * 100))%")
+                    .font(.system(size: size * 0.24, weight: .semibold, design: .rounded))
+                    .foregroundColor(tint)
+            }
+        }
+        .frame(width: size, height: size)
     }
 }

@@ -158,6 +158,24 @@ struct SettingsView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 10) {
+                Text("Progress style")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Picker("Progress style", selection: Binding(
+                    get: { viewModel.progressStyle },
+                    set: { viewModel.setProgressStyle($0) }
+                )) {
+                    Text("Bars").tag(0)
+                    Text("Circles").tag(1)
+                }
+                .pickerStyle(.radioGroup)
+                .labelsHidden()
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Auto-refresh interval")
                     .font(.subheadline)
                     .fontWeight(.medium)
