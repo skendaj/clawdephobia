@@ -312,7 +312,7 @@ struct PopoverView: View {
 
     private func usageRow(title: String, percent: Double, resetDescription: String, tint: Color) -> some View {
         Group {
-            if viewModel.progressStyle == 1 {
+            if viewModel.viewProgressStyle == 1 {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(title)

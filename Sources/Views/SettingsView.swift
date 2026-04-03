@@ -162,15 +162,37 @@ struct SettingsView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
 
-                Picker("Progress style", selection: Binding(
-                    get: { viewModel.progressStyle },
-                    set: { viewModel.setProgressStyle($0) }
-                )) {
-                    Text("Bars").tag(0)
-                    Text("Circles").tag(1)
+                HStack(alignment: .top, spacing: 28) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Menu bar")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Picker("Menu bar", selection: Binding(
+                            get: { viewModel.menuBarProgressStyle },
+                            set: { viewModel.setMenuBarProgressStyle($0) }
+                        )) {
+                            Text("Bars").tag(0)
+                            Text("Circles").tag(1)
+                        }
+                        .pickerStyle(.radioGroup)
+                        .labelsHidden()
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Content view")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Picker("Content view", selection: Binding(
+                            get: { viewModel.viewProgressStyle },
+                            set: { viewModel.setViewProgressStyle($0) }
+                        )) {
+                            Text("Bars").tag(0)
+                            Text("Circles").tag(1)
+                        }
+                        .pickerStyle(.radioGroup)
+                        .labelsHidden()
+                    }
                 }
-                .pickerStyle(.radioGroup)
-                .labelsHidden()
             }
 
             Divider()

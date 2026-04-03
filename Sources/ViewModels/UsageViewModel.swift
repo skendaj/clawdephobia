@@ -43,8 +43,10 @@ final class UsageViewModel: ObservableObject {
 
     /// 0 = bars only, 1 = bars + text, 2 = bars + compact text
     @Published var menuBarDisplayMode: Int = 0
-    /// 0 = bars, 1 = circles
-    @Published var progressStyle: Int = 0
+    /// 0 = bars, 1 = circles (menu bar icon)
+    @Published var menuBarProgressStyle: Int = 0
+    /// 0 = bars, 1 = circles (popover content view)
+    @Published var viewProgressStyle: Int = 0
 
     @Published var isSetupComplete: Bool = false
     @Published var notificationsEnabled: Bool = true
@@ -276,9 +278,14 @@ final class UsageViewModel: ObservableObject {
         UserDefaults.standard.set(mode, forKey: "claudephobia.menu_bar_display")
     }
 
-    func setProgressStyle(_ style: Int) {
-        progressStyle = style
-        UserDefaults.standard.set(style, forKey: "claudephobia.progress_style")
+    func setMenuBarProgressStyle(_ style: Int) {
+        menuBarProgressStyle = style
+        UserDefaults.standard.set(style, forKey: "claudephobia.menubar_progress_style")
+    }
+
+    func setViewProgressStyle(_ style: Int) {
+        viewProgressStyle = style
+        UserDefaults.standard.set(style, forKey: "claudephobia.view_progress_style")
     }
 
     func toggleNotifications() {
@@ -722,7 +729,8 @@ final class UsageViewModel: ObservableObject {
         isSetupComplete = UserDefaults.standard.bool(forKey: "claudephobia.setup_complete")
         notificationsEnabled = UserDefaults.standard.object(forKey: "claudephobia.notifications_enabled") as? Bool ?? true
         menuBarDisplayMode = UserDefaults.standard.integer(forKey: "claudephobia.menu_bar_display")
-        progressStyle = UserDefaults.standard.integer(forKey: "claudephobia.progress_style")
+        menuBarProgressStyle = UserDefaults.standard.integer(forKey: "claudephobia.menubar_progress_style")
+        viewProgressStyle = UserDefaults.standard.integer(forKey: "claudephobia.view_progress_style")
         refreshInterval = UserDefaults.standard.object(forKey: "claudephobia.refresh_interval") as? Int ?? 300
         warningThreshold = UserDefaults.standard.object(forKey: "claudephobia.warning_threshold") as? Double ?? 0.75
         criticalThreshold = UserDefaults.standard.object(forKey: "claudephobia.critical_threshold") as? Double ?? 0.90

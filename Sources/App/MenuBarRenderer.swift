@@ -6,7 +6,7 @@ enum MenuBarRenderer {
 
     static func createImage(sessionPercent: Double, weeklyPercent: Double,
                             isPacingWarning: Bool, isServiceDown: Bool = false,
-                            progressStyle: Int = 0) -> NSImage {
+                            menuBarProgressStyle: Int = 0) -> NSImage {
         let height: CGFloat = 16
 
         let flameImg: NSImage? = isPacingWarning ? createFlameImage() : nil
@@ -14,15 +14,15 @@ enum MenuBarRenderer {
         let trailingImg = downImg ?? flameImg
         let trailingSpace: CGFloat = trailingImg.map { $0.size.width + 2 } ?? 0
 
-        let baseWidth: CGFloat = progressStyle == 1 ? 29 : iconWidth
+        let baseWidth: CGFloat = menuBarProgressStyle == 1 ? circleIconWidth(session: sessionPercent, weekly: weeklyPercent) : iconWidth
         let totalWidth = baseWidth + trailingSpace
 
         let image = NSImage(size: NSSize(width: totalWidth, height: height))
         image.lockFocus()
 
-        if progressStyle == 1 {
-            drawDualCircle(session: sessionPercent, weekly: weeklyPercent, height: height,
-                           isServiceDown: isServiceDown)
+        if menuBarProgressStyle == 1 {
+            drawDualCirclePaired(session: sessionPercent, weekly: weeklyPercent, height: height,
+                                 isServiceDown: isServiceDown)
         } else {
             drawDualBar(session: sessionPercent, weekly: weeklyPercent, width: iconWidth, height: height,
                         isServiceDown: isServiceDown)
@@ -38,7 +38,10 @@ enum MenuBarRenderer {
         return image
     }
 
-    static func titleText(sessionPercent: Double, weeklyPercent: Double, displayMode: Int) -> String {
+    static func titleText(sessionPercent: Double, weeklyPercent: Double, displayMode: Int,
+                          menuBarProgressStyle: Int = 0) -> String {
+        // Circles mode embeds values in the icon image — no separate title text needed
+        if menuBarProgressStyle == 1 { return "" }
         switch displayMode {
         case 1:  return " \(pct(sessionPercent)) \u{00B7} \(pct(weeklyPercent))"
         case 2:  return " \(pct(sessionPercent))/\(pct(weeklyPercent))"
@@ -119,20 +122,56 @@ enum MenuBarRenderer {
         return img
     }
 
-    // MARK: - Dual Circle
+    // MARK: - Dual Circle (paired with value text)
 
-    private static func drawDualCircle(session: Double, weekly: Double, height: CGFloat,
-                                       isServiceDown: Bool = false) {
-        let circleSize: CGFloat = 12
-        let gap: CGFloat = 3
-        let padding: CGFloat = 1
-        let y = (height - circleSize) / 2
+    /// Returns the width needed to fit two circle+value pairs.
+    private static func circleIconWidth(session: Double, weekly: Double) -> CGFloat {
+        let circleD: CGFloat = 12
+        let textGap: CGFloat = 3
+        let pairGap: CGFloat = 6
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium)
+        let attrs: [NSAttributedString.Key: Any] = [.font: font]
+        let sessionW = (pct(session) as NSString).size(withAttributes: attrs).width
+        let weeklyW  = (pct(weekly)  as NSString).size(withAttributes: attrs).width
+        return ceil(circleD + textGap + sessionW + pairGap + circleD + textGap + weeklyW + 2)
+    }
+
+    /// Draws two circle+value pairs: [○ 26%] [○ 56%]
+    private static func drawDualCirclePaired(session: Double, weekly: Double, height: CGFloat,
+                                             isServiceDown: Bool = false) {
+        let circleD: CGFloat = 12
+        let textGap: CGFloat = 3
+        let pairGap: CGFloat = 6
         let alpha: CGFloat = isServiceDown ? 0.4 : 1.0
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium)
 
-        drawCircleArc(in: NSRect(x: padding, y: y, width: circleSize, height: circleSize),
+        // Session pair
+        let circleY = (height - circleD) / 2
+        drawCircleArc(in: NSRect(x: 1, y: circleY, width: circleD, height: circleD),
                       percent: session, alpha: alpha)
-        drawCircleArc(in: NSRect(x: padding + circleSize + gap, y: y, width: circleSize, height: circleSize),
+        let sessionLabel = pct(session)
+        let sessionLabelSize = (sessionLabel as NSString).size(withAttributes: [.font: font])
+        let sessionTextX = 1 + circleD + textGap
+        let sessionTextY = (height - sessionLabelSize.height) / 2
+        let sessionColor = barColor(for: session).withAlphaComponent(alpha)
+        (sessionLabel as NSString).draw(
+            at: NSPoint(x: sessionTextX, y: sessionTextY),
+            withAttributes: [.font: font, .foregroundColor: sessionColor]
+        )
+
+        // Weekly pair
+        let weeklyCircleX = sessionTextX + sessionLabelSize.width + pairGap
+        drawCircleArc(in: NSRect(x: weeklyCircleX, y: circleY, width: circleD, height: circleD),
                       percent: weekly, alpha: alpha)
+        let weeklyLabel = pct(weekly)
+        let weeklyLabelSize = (weeklyLabel as NSString).size(withAttributes: [.font: font])
+        let weeklyTextX = weeklyCircleX + circleD + textGap
+        let weeklyTextY = (height - weeklyLabelSize.height) / 2
+        let weeklyColor = barColor(for: weekly).withAlphaComponent(alpha)
+        (weeklyLabel as NSString).draw(
+            at: NSPoint(x: weeklyTextX, y: weeklyTextY),
+            withAttributes: [.font: font, .foregroundColor: weeklyColor]
+        )
     }
 
     private static func drawCircleArc(in rect: NSRect, percent: Double, alpha: CGFloat = 1.0) {

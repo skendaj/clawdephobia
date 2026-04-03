@@ -42,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 ),
                 viewModel.$isServiceDown
             ),
-            viewModel.$progressStyle
+            viewModel.$menuBarProgressStyle
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _, _ in
@@ -99,14 +99,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             weeklyPercent: viewModel.weeklyPercent,
             isPacingWarning: viewModel.isPacingWarning,
             isServiceDown: viewModel.isServiceDown,
-            progressStyle: viewModel.progressStyle
+            menuBarProgressStyle: viewModel.menuBarProgressStyle
         )
         button.imagePosition = .imageLeading
 
         button.title = MenuBarRenderer.titleText(
             sessionPercent: viewModel.sessionPercent,
             weeklyPercent: viewModel.weeklyPercent,
-            displayMode: viewModel.menuBarDisplayMode
+            displayMode: viewModel.menuBarDisplayMode,
+            menuBarProgressStyle: viewModel.menuBarProgressStyle
         )
 
         button.toolTip = MenuBarRenderer.tooltip(
