@@ -508,6 +508,23 @@ struct SettingsView: View {
                         }
                 }
             }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Found a bug or have a suggestion?")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Text("Contact support")
+                    .font(.caption)
+                    .foregroundColor(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
+                    .onTapGesture {
+                        if let url = URL(string: "mailto:skendajbruno07@gmail.com") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+            }
         }
     }
 

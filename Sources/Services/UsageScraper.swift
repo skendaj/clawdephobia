@@ -153,6 +153,7 @@ final class UsageScraper {
     private func apiGet(path: String) async throws -> (Data, Int) {
         let url = URL(string: "https://claude.ai\(path)")!
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "Cookie")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
