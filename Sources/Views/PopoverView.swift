@@ -108,6 +108,25 @@ struct PopoverView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0))
             .disabled(sessionKey.trimmingCharacters(in: .whitespaces).isEmpty || isTesting)
+
+            HStack(spacing: 6) {
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.secondary.opacity(0.2))
+                Text("or")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.secondary.opacity(0.2))
+            }
+
+            Button("Try Demo Mode") {
+                viewModel.completeSetup(sessionKey: UsageViewModel.demoSessionKey)
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .buttonStyle(.plain)
         }
         .padding(16)
         .frame(width: 280)
