@@ -39,36 +39,26 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
       - name: Build app bundle
         run: |
-          swift build -c release
+          xcodebuild archive \
+            -project Clawdphobia.xcodeproj \
+            -scheme Claudephobia \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/Claudephobia.xcarchive" \
+            CODE_SIGN_IDENTITY="Developer ID Application: Bruno Skendaj (53CZ5753ZD)" \
+            CODE_SIGN_ENTITLEMENTS="Resources/Claudephobia.entitlements" \
+            "OTHER_CODE_SIGN_FLAGS=--keychain $RUNNER_TEMP/signing.keychain-db" \
+            DEVELOPMENT_TEAM="53CZ5753ZD"
 
-          APP="Claudephobia.app"
-          CONTENTS="${APP}/Contents"
-          mkdir -p "${CONTENTS}/MacOS" "${CONTENTS}/Resources"
-
-          cp .build/release/Claudephobia "${CONTENTS}/MacOS/Claudephobia"
-          cp Resources/Info.plist "${CONTENTS}/Info.plist"
-
-          # Copy icon from SPM resource bundle into app Resources
-          RESOURCE_BUNDLE=$(find .build -path "*/release/Claudephobia_Claudephobia.bundle" -type d | head -1)
-          if [ -n "$RESOURCE_BUNDLE" ] && [ -f "$RESOURCE_BUNDLE/icon.png" ]; then
-            cp "$RESOURCE_BUNDLE/icon.png" "${CONTENTS}/Resources/icon.png"
-          elif [ -f "Sources/Resources/icon.png" ]; then
-            cp "Sources/Resources/icon.png" "${CONTENTS}/Resources/icon.png"
-          fi
-
-          if [ -f "Resources/AppIcon.icns" ]; then
-            cp "Resources/AppIcon.icns" "${CONTENTS}/Resources/AppIcon.icns"
-          fi
-
-          # Sign with Developer ID + hardened runtime + entitlements
-          codesign --force --options runtime \
-            --entitlements Resources/Claudephobia.entitlements \
-            --sign "Developer ID Application: Bruno Skendaj (53CZ5753ZD)" \
-            "${APP}"
-
-          codesign --verify --verbose "${APP}"
+          cp -R "$RUNNER_TEMP/Claudephobia.xcarchive/Products/Applications/Claudephobia.app" ./Claudephobia.app
+          codesign --verify --verbose ./Claudephobia.app
 
       - name: Notarize
         env:
