@@ -51,7 +51,9 @@ jobs:
             -project Clawdphobia.xcodeproj \
             -scheme Claudephobia \
             -configuration Release \
-            -archivePath "$RUNNER_TEMP/Claudephobia.xcarchive"
+            -archivePath "$RUNNER_TEMP/Claudephobia.xcarchive" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=53CZ5753ZD
 
           cp -R "$RUNNER_TEMP/Claudephobia.xcarchive/Products/Applications/Claudephobia.app" ./Claudephobia.app
           codesign --verify --verbose ./Claudephobia.app
