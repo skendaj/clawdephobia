@@ -52,8 +52,13 @@ jobs:
             -scheme Claudephobia \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/Claudephobia.xcarchive" \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=53CZ5753ZD
+            CODE_SIGN_IDENTITY="Developer ID Application: Bruno Skendaj (53CZ5753ZD)" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CODE_SIGN_ENTITLEMENTS="Resources/Claudephobia-DevID.entitlements" \
+            ENABLE_HARDENED_RUNTIME=YES \
+            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/signing.keychain-db" \
+            DEVELOPMENT_TEAM="53CZ5753ZD"
 
           cp -R "$RUNNER_TEMP/Claudephobia.xcarchive/Products/Applications/Claudephobia.app" ./Claudephobia.app
           codesign --verify --verbose ./Claudephobia.app
