@@ -134,7 +134,6 @@ return ClawdUsageData(
         guard let dict = value as? [String: Any] else { return nil }
 
         guard let utilization = dict["utilization"] as? Double else { return nil }
-        guard utilization != 0 else { return nil }
 
         let percent = utilization > 1 ? utilization / 100.0 : utilization
 
