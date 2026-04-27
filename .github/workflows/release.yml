@@ -141,8 +141,7 @@ jobs:
         run: security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
 
       - name: Create stable download name
-        run: |
-          cp "Clawdephobia-${VERSION}.dmg" Clawdephobia.dmg
+        run: cp "$DMG_NAME" Clawdephobia.dmg
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
