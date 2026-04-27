@@ -26,4 +26,5 @@ targets:
       configs:
         Release:
           CODE_SIGN_ENTITLEMENTS: Resources/Claudephobia-DevID.entitlements
-          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGNING_REQUIRED: NO

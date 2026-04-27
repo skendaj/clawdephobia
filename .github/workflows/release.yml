@@ -53,14 +53,14 @@ jobs:
             -configuration Release \
             -archivePath "$RUNNER_TEMP/Clawdephobia.xcarchive" \
             CODE_SIGN_IDENTITY="Developer ID Application: Bruno Skendaj (53CZ5753ZD)" \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_ENTITLEMENTS="Resources/Claudephobia-DevID.entitlements" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             ENABLE_HARDENED_RUNTIME=YES \
-            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/signing.keychain-db" \
             DEVELOPMENT_TEAM="53CZ5753ZD"
 
           cp -R "$RUNNER_TEMP/Clawdephobia.xcarchive/Products/Applications/Clawdephobia.app" ./Clawdephobia.app
-          codesign --verify --verbose ./Clawdephobia.app
+          codesign --force --options runtime --entitlements Resources/Claudephobia-DevID.entitlements --sign "Developer ID Application: Bruno Skendaj (53CZ5753ZD)" ./Clawdephobia.app
 
       - name: Notarize
         env:
