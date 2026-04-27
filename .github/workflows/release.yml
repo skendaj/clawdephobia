@@ -70,13 +70,19 @@ jobs:
         timeout-minutes: 30
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          ZIP_NAME="Clawdephobia-${VERSION}.zip"
-          zip -r "$ZIP_NAME" Clawdephobia.app
+          
+          # Create DMG with "drag to Applications" view
+          hdiutil create -volname "Clawdephobia" -srcfolder Clawdephobia.app -ov -format UDZO "Clawdephobia-${VERSION}.dmg"
 
-          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+          echo "DMG_NAME=Clawdephobia-${VERSION}.dmg" >> "$GITHUB_ENV"
 
-          # Submit for notarization
-          SUBMIT_OUTPUT=$(xcrun notarytool submit "$ZIP_NAME" \
+          # Also create ZIP for backup
+          zip -r "Clawdephobia-${VERSION}.zip" Clawdephobia.app
+
+          echo "ZIP_NAME=Clawdephobia-${VERSION}.zip" >> "$GITHUB_ENV"
+
+          # Submit DMG for notarization
+          SUBMIT_OUTPUT=$(xcrun notarytool submit "Clawdephobia-${VERSION}.dmg" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_PASSWORD" \
@@ -110,8 +116,8 @@ jobs:
 
             if [ "$STATUS" = "Accepted" ]; then
               xcrun stapler staple Clawdephobia.app
-              rm "$ZIP_NAME"
-              zip -r "$ZIP_NAME" Clawdephobia.app
+              # Re-create DMG after stapling
+              hdiutil create -volname "Clawdephobia" -srcfolder Clawdephobia.app -ov -format UDZO "Clawdephobia-${VERSION}.dmg"
               echo "NOTARIZED=true" >> "$GITHUB_ENV"
             else
               echo "::error::Notarization rejected. Fetching log..."
@@ -135,12 +141,13 @@ jobs:
         run: security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
 
       - name: Create stable download name
-        run: cp "$ZIP_NAME" Clawdephobia.zip
+        run: |
+          cp "Clawdephobia-${VERSION}.dmg" Clawdephobia.dmg
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ env.ZIP_NAME }}
-            Clawdephobia.zip
+            ${{ env.DMG_NAME }}
+            Clawdephobia.dmg
           generate_release_notes: true
