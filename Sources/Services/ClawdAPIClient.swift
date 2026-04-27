@@ -40,6 +40,10 @@ struct ClawdUsageData {
     let sevenDayCowork: RateLimitInfo?
     let extraUsage: RateLimitInfo?
     let rateLimitTier: String?
+    
+    // Claude Design / Omelette fields
+    let sevenDayOmelette: RateLimitInfo?
+    let iguanaNecktie: RateLimitInfo?
 }
 
 /// Lightweight client used only for validating session keys via /api/organizations.

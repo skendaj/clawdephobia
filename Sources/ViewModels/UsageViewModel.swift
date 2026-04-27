@@ -38,6 +38,10 @@ final class UsageViewModel: ObservableObject {
     @Published var extraUsagePercent: Double?
     @Published var extraUsageResetDescription: String?
 
+    // Claude Design / Omelette
+    @Published var omelettePercent: Double?
+    @Published var omeletteResetDescription: String?
+    
     // Tier
     @Published var rateLimitTier: String?
 
@@ -99,6 +103,7 @@ final class UsageViewModel: ObservableObject {
     private var oauthAppsResetsAt: Date?
     private var coworkResetsAt: Date?
     private var extraUsageResetsAt: Date?
+    private var omeletteResetsAt: Date?
 
     /// Minimum seconds between fetches (prevents hammering on popover open)
     private let minFetchInterval: TimeInterval = 30
@@ -165,6 +170,7 @@ final class UsageViewModel: ObservableObject {
         oauthAppsPercent = nil
         coworkPercent = nil
         extraUsagePercent = nil
+        omelettePercent = nil
         rateLimitTier = nil
         sessionResetDescription = ""
         weeklyResetDescription = ""
@@ -175,6 +181,7 @@ final class UsageViewModel: ObservableObject {
         oauthAppsResetsAt = nil
         coworkResetsAt = nil
         extraUsageResetsAt = nil
+        omeletteResetsAt = nil
         lastUpdated = nil
         errorMessage = nil
         lastUsageData = nil
@@ -452,6 +459,7 @@ final class UsageViewModel: ObservableObject {
         oauthAppsPercent = nil
         coworkPercent = nil
         extraUsagePercent = nil
+        omelettePercent = nil
         rateLimitTier = nil
         sessionResetDescription = ""
         weeklyResetDescription = ""
@@ -462,6 +470,7 @@ final class UsageViewModel: ObservableObject {
         oauthAppsResetsAt = nil
         coworkResetsAt = nil
         extraUsageResetsAt = nil
+        omeletteResetsAt = nil
         lastUpdated = nil
         errorMessage = nil
         lastUsageData = nil
@@ -540,6 +549,16 @@ final class UsageViewModel: ObservableObject {
             extraUsagePercent = nil
             extraUsageResetDescription = nil
             extraUsageResetsAt = nil
+        }
+
+        if let omelette = data.sevenDayOmelette {
+            updateIfNeeded(&omelettePercent, omelette.percentUsed)
+            omeletteResetsAt = omelette.resetsAt
+            updateIfNeeded(&omeletteResetDescription, formatResetTime(omelette.resetsAt))
+        } else {
+            omelettePercent = nil
+            omeletteResetDescription = nil
+            omeletteResetsAt = nil
         }
 
         updateIfNeeded(&rateLimitTier, data.rateLimitTier)
@@ -696,6 +715,9 @@ final class UsageViewModel: ObservableObject {
         if let date = extraUsageResetsAt {
             extraUsageResetDescription = formatResetTime(date)
         }
+        if let date = omeletteResetsAt {
+            omeletteResetDescription = formatResetTime(date)
+        }
     }
 
     // MARK: - System Event Observers
@@ -839,7 +861,9 @@ final class UsageViewModel: ObservableObject {
             sevenDayOAuthApps: RateLimitInfo(percentUsed: 0.10, resetsAt: now.addingTimeInterval(3600 * 52)),
             sevenDayCowork:    RateLimitInfo(percentUsed: 0.05, resetsAt: now.addingTimeInterval(3600 * 52)),
             extraUsage:        RateLimitInfo(percentUsed: 0.88, resetsAt: now.addingTimeInterval(3600 * 12)),
-            rateLimitTier:     "pro"
+            rateLimitTier:     "pro",
+            sevenDayOmelette:  RateLimitInfo(percentUsed: 0.25, resetsAt: now.addingTimeInterval(3600 * 52)),
+            iguanaNecktie:     nil
         )
     }
 

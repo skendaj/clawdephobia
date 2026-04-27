@@ -33,7 +33,7 @@ final class UsageScraper {
         let usage = try await usageResult
         let tier = try? await tierResult
 
-        return ClawdUsageData(
+return ClawdUsageData(
             fiveHour: usage.fiveHour,
             sevenDay: usage.sevenDay,
             sevenDayOpus: usage.sevenDayOpus,
@@ -41,7 +41,9 @@ final class UsageScraper {
             sevenDayOAuthApps: usage.sevenDayOAuthApps,
             sevenDayCowork: usage.sevenDayCowork,
             extraUsage: usage.extraUsage,
-            rateLimitTier: tier
+            rateLimitTier: tier,
+            sevenDayOmelette: usage.sevenDayOmelette,
+            iguanaNecktie: usage.iguanaNecktie
         )
     }
 
@@ -99,7 +101,7 @@ final class UsageScraper {
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw ClawdAPIError.invalidResponse("Usage endpoint returned status \(status)")
         }
-
+        
         return ClawdUsageData(
             fiveHour: parseLimit(dict["five_hour"]),
             sevenDay: parseLimit(dict["seven_day"]),
@@ -108,7 +110,9 @@ final class UsageScraper {
             sevenDayOAuthApps: parseLimit(dict["seven_day_oauth_apps"]),
             sevenDayCowork: parseLimit(dict["seven_day_cowork"]),
             extraUsage: parseLimit(dict["extra_usage"]),
-            rateLimitTier: nil
+            rateLimitTier: nil,
+            sevenDayOmelette: parseLimit(dict["seven_day_omelette"]),
+            iguanaNecktie: parseLimit(dict["iguana_necktie"])
         )
     }
 
@@ -130,20 +134,24 @@ final class UsageScraper {
         guard let dict = value as? [String: Any] else { return nil }
 
         guard let utilization = dict["utilization"] as? Double else { return nil }
+        guard utilization != 0 else { return nil }
 
         let percent = utilization > 1 ? utilization / 100.0 : utilization
 
-        let resetsAt: Date = {
-            if let str = dict["resets_at"] as? String {
-                let iso = ISO8601DateFormatter()
-                iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                if let d = iso.date(from: str) { return d }
-                iso.formatOptions = [.withInternetDateTime]
-                if let d = iso.date(from: str) { return d }
-            }
-            return Date().addingTimeInterval(3600)
-        }()
-
+        guard let str = dict["resets_at"] as? String else { return nil }
+        
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let resetsAt = iso.date(from: str) else {
+            iso.formatOptions = [.withInternetDateTime]
+            guard let resetsAt = iso.date(from: str) else { return nil }
+            return makeRateLimitInfo(percent: percent, resetsAt: resetsAt)
+        }
+        
+        return makeRateLimitInfo(percent: percent, resetsAt: resetsAt)
+    }
+    
+    private func makeRateLimitInfo(percent: Double, resetsAt: Date) -> RateLimitInfo {
         let clamped = percent.isFinite ? max(0, percent) : 0
         return RateLimitInfo(percentUsed: clamped, resetsAt: resetsAt)
     }

@@ -245,6 +245,16 @@ struct PopoverView: View {
                 )
             }
 
+            // Claude Design / Omelette
+            if let omelettePct = viewModel.omelettePercent {
+                usageRow(
+                    title: "Claude Design",
+                    percent: omelettePct,
+                    resetDescription: viewModel.omeletteResetDescription ?? "",
+                    tint: .orange
+                )
+            }
+
             Divider().padding(.vertical, 6)
 
             // Service down banner
