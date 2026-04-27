@@ -27,4 +27,3 @@ targets:
         Release:
           CODE_SIGN_ENTITLEMENTS: Resources/Claudephobia-DevID.entitlements
           CODE_SIGN_STYLE: Manual
-          PROVISIONING_PROFILE_SPECIFIER: ""
