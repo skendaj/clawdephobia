@@ -135,7 +135,7 @@ return ClawdUsageData(
 
         guard let utilization = dict["utilization"] as? Double else { return nil }
 
-        let percent = utilization > 1 ? utilization / 100.0 : utilization
+        let percent = utilization >= 1 ? utilization / 100.0 : utilization
 
         guard let str = dict["resets_at"] as? String else { return nil }
         
