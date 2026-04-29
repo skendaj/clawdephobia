@@ -722,6 +722,16 @@ final class UsageViewModel: ObservableObject {
         }
     }
 
+    func pauseCountdownTimer() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+    }
+
+    func resumeCountdownTimer() {
+        updateCountdowns()
+        startCountdownTimer()
+    }
+
     private func updateCountdowns() {
         if let date = sessionResetsAt {
             sessionResetDescription = formatResetTime(date)

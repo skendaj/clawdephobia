@@ -10,6 +10,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var settingsWindow: NSWindow?
     private var eventMonitor: Any?
 
+    private struct MenuBarRenderState: Equatable {
+        var sessionPercent: Double
+        var weeklyPercent: Double
+        var isPacingWarning: Bool
+        var isServiceDown: Bool
+        var menuBarProgressStyle: Int
+        var menuBarDisplayMode: Int
+    }
+    private var lastRenderedState: MenuBarRenderState?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupEditMenu()
         viewModel = UsageViewModel()
@@ -87,6 +97,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
             }
             .store(in: &cancellables)
+
+        // Pause countdown timer when popover is hidden — no visible content to update
+        NotificationCenter.default.addObserver(
+            forName: NSPopover.willShowNotification,
+            object: popover,
+            queue: .main
+        ) { [weak self] _ in
+            self?.viewModel.resumeCountdownTimer()
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSPopover.didCloseNotification,
+            object: popover,
+            queue: .main
+        ) { [weak self] _ in
+            self?.viewModel.pauseCountdownTimer()
+        }
     }
 
     // MARK: - Menu Bar
@@ -94,14 +120,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func updateMenuBarDisplay() {
         guard let button = statusItem.button else { return }
 
-        button.image = MenuBarRenderer.createImage(
+        let state = MenuBarRenderState(
             sessionPercent: viewModel.sessionPercent,
             weeklyPercent: viewModel.weeklyPercent,
             isPacingWarning: viewModel.isPacingWarning,
             isServiceDown: viewModel.isServiceDown,
-            menuBarProgressStyle: viewModel.menuBarProgressStyle
+            menuBarProgressStyle: viewModel.menuBarProgressStyle,
+            menuBarDisplayMode: viewModel.menuBarDisplayMode
         )
-        button.imagePosition = .imageLeading
+        if state != lastRenderedState {
+            lastRenderedState = state
+            button.image = MenuBarRenderer.createImage(
+                sessionPercent: state.sessionPercent,
+                weeklyPercent: state.weeklyPercent,
+                isPacingWarning: state.isPacingWarning,
+                isServiceDown: state.isServiceDown,
+                menuBarProgressStyle: state.menuBarProgressStyle
+            )
+            button.imagePosition = .imageLeading
+        }
 
         button.title = MenuBarRenderer.titleText(
             sessionPercent: viewModel.sessionPercent,
@@ -109,7 +146,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             displayMode: viewModel.menuBarDisplayMode,
             menuBarProgressStyle: viewModel.menuBarProgressStyle
         )
-
         button.toolTip = MenuBarRenderer.tooltip(
             sessionPercent: viewModel.sessionPercent,
             sessionReset: viewModel.sessionResetDescription,
