@@ -92,25 +92,24 @@ jobs:
           DEVICE=$(hdiutil attach -readwrite -noverify "Clawdephobia-rw.dmg" | grep "Apple_HFS" | awk '{print $1}')
           sleep 2
 
-          osascript <<'APPLESCRIPT' || true
-tell application "Finder"
-  tell disk "Clawdephobia"
-    open
-    set current view of container window to icon view
-    set toolbar visible of container window to false
-    set statusbar visible of container window to false
-    set bounds of container window to {200, 150, 740, 470}
-    set icon size of the icon view options of container window to 80
-    set arrangement of the icon view options of container window to not arranged
-    set position of item "Clawdephobia.app" of container window to {130, 175}
-    set position of item "Applications" of container window to {410, 175}
-    close
-    open
-    update without registering applications
-    delay 2
-  end tell
-end tell
-APPLESCRIPT
+          osascript \
+            -e 'tell application "Finder"' \
+            -e 'tell disk "Clawdephobia"' \
+            -e 'open' \
+            -e 'set current view of container window to icon view' \
+            -e 'set toolbar visible of container window to false' \
+            -e 'set statusbar visible of container window to false' \
+            -e 'set bounds of container window to {200, 150, 740, 470}' \
+            -e 'set icon size of the icon view options of container window to 80' \
+            -e 'set arrangement of the icon view options of container window to not arranged' \
+            -e 'set position of item "Clawdephobia.app" of container window to {130, 175}' \
+            -e 'set position of item "Applications" of container window to {410, 175}' \
+            -e 'close' \
+            -e 'open' \
+            -e 'update without registering applications' \
+            -e 'delay 2' \
+            -e 'end tell' \
+            -e 'end tell' || true
 
           hdiutil detach "$DEVICE"
           hdiutil convert "Clawdephobia-rw.dmg" \
@@ -170,25 +169,24 @@ APPLESCRIPT
                 "Clawdephobia-rw2.dmg"
               DEVICE2=$(hdiutil attach -readwrite -noverify "Clawdephobia-rw2.dmg" | grep "Apple_HFS" | awk '{print $1}')
               sleep 2
-              osascript <<'APPLESCRIPT' || true
-tell application "Finder"
-  tell disk "Clawdephobia"
-    open
-    set current view of container window to icon view
-    set toolbar visible of container window to false
-    set statusbar visible of container window to false
-    set bounds of container window to {200, 150, 740, 470}
-    set icon size of the icon view options of container window to 80
-    set arrangement of the icon view options of container window to not arranged
-    set position of item "Clawdephobia.app" of container window to {130, 175}
-    set position of item "Applications" of container window to {410, 175}
-    close
-    open
-    update without registering applications
-    delay 2
-  end tell
-end tell
-APPLESCRIPT
+              osascript \
+                -e 'tell application "Finder"' \
+                -e 'tell disk "Clawdephobia"' \
+                -e 'open' \
+                -e 'set current view of container window to icon view' \
+                -e 'set toolbar visible of container window to false' \
+                -e 'set statusbar visible of container window to false' \
+                -e 'set bounds of container window to {200, 150, 740, 470}' \
+                -e 'set icon size of the icon view options of container window to 80' \
+                -e 'set arrangement of the icon view options of container window to not arranged' \
+                -e 'set position of item "Clawdephobia.app" of container window to {130, 175}' \
+                -e 'set position of item "Applications" of container window to {410, 175}' \
+                -e 'close' \
+                -e 'open' \
+                -e 'update without registering applications' \
+                -e 'delay 2' \
+                -e 'end tell' \
+                -e 'end tell' || true
               hdiutil detach "$DEVICE2"
               hdiutil convert "Clawdephobia-rw2.dmg" \
                 -format UDZO \
