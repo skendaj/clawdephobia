@@ -191,6 +191,7 @@ jobs:
               hdiutil convert "Clawdephobia-rw2.dmg" \
                 -format UDZO \
                 -imagekey zlib-level=9 \
+                -ov \
                 -o "Clawdephobia-${VERSION}.dmg"
               rm "Clawdephobia-rw2.dmg"
               rm -rf "$DMG_STAGING2"
