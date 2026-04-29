@@ -490,10 +490,27 @@ struct SettingsView: View {
         }
     }
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+
     // MARK: - About
 
     private var aboutTab: some View {
         VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Clawdephobia")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                if !appVersion.isEmpty {
+                    Text("v\(appVersion)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Divider()
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Clawdephobia reads your usage data directly from the Clawd API using your session cookie. No data is sent to any third party. No cost involved.")
                     .font(.caption)

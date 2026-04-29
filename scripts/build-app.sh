@@ -9,6 +9,10 @@ APP_BUNDLE="dist/${APP_NAME}.app"
 CONTENTS="${APP_BUNDLE}/Contents"
 SIGNING_IDENTITY="Developer ID Application: Bruno Skendaj (53CZ5753ZD)"
 
+# Derive version from the nearest git tag (strip leading 'v')
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+echo "Version: ${VERSION}"
+
 echo "Building ${APP_NAME}..."
 swift build -c release
 
@@ -32,8 +36,9 @@ else
     echo "Warning: icon.png not found."
 fi
 
-# Copy Info.plist
+# Copy Info.plist and stamp version from git tag
 cp Resources/Info.plist "${CONTENTS}/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${CONTENTS}/Info.plist"
 
 # Copy app icon if it exists
 if [ -f "Resources/AppIcon.icns" ]; then
@@ -45,7 +50,7 @@ fi
 
 # Code sign with Developer ID + hardened runtime (required for notarization)
 echo "Signing with: ${SIGNING_IDENTITY}"
-codesign --force --options runtime --entitlements Resources/Clawdephobia.entitlements --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
+codesign --force --options runtime --entitlements Resources/Claudephobia.entitlements --sign "${SIGNING_IDENTITY}" "${APP_BUNDLE}"
 echo "Signed."
 
 # Verify signature

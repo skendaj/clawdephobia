@@ -88,6 +88,12 @@ struct PopoverView: View {
                 .foregroundColor(.secondary)
                 .italic()
 
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String, !version.isEmpty {
+                Text("v\(version)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary.opacity(0.5))
+            }
+
             if let error = errorMessage {
                 Text(error)
                     .font(.caption2)
@@ -338,6 +344,11 @@ struct PopoverView: View {
                     ProgressView()
                         .scaleEffect(0.5)
                         .frame(width: 12, height: 12)
+                }
+                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String, !version.isEmpty {
+                    Text("v\(version)")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
                 }
                 Spacer()
 

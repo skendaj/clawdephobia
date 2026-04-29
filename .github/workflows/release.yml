@@ -46,7 +46,10 @@ jobs:
         run: xcodegen generate
 
       - name: Build app bundle
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
+          APP_VERSION="${VERSION#v}"
           xcodebuild archive \
             -project Clawdephobia.xcodeproj \
             -scheme Clawdephobia \
@@ -57,7 +60,8 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_HARDENED_RUNTIME=YES \
-            DEVELOPMENT_TEAM="53CZ5753ZD"
+            DEVELOPMENT_TEAM="53CZ5753ZD" \
+            MARKETING_VERSION="$APP_VERSION"
 
           cp -R "$RUNNER_TEMP/Clawdephobia.xcarchive/Products/Applications/Clawdephobia.app" ./Clawdephobia.app
           codesign --force --options runtime --entitlements Resources/Claudephobia-DevID.entitlements --sign "Developer ID Application: Bruno Skendaj (53CZ5753ZD)" ./Clawdephobia.app
