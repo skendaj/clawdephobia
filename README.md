@@ -184,7 +184,7 @@ Sources/
     └── ShareCardView.swift             # Share card generation & rendering
 ```
 
-The app uses an **AppKit + SwiftUI hybrid** approach — `NSStatusItem` for the menu bar, `NSPopover` with `NSHostingController` for the popover, and pure SwiftUI for all views. State flows through a single `UsageViewModel` observed by all views via Combine. Zero external dependencies.
+The app uses an **AppKit + SwiftUI hybrid** approach `NSStatusItem` for the menu bar, `NSPopover` with `NSHostingController` for the popover, and pure SwiftUI for all views. State flows through a single `UsageViewModel` observed by all views via Combine. Zero external dependencies.
 
 ## Privacy
 
