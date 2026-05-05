@@ -176,6 +176,13 @@ struct PopoverView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                Button(action: { NSApplication.shared.terminate(nil) }) {
+                    Label("Quit", systemImage: "power")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Quit Clawdephobia")
             }
             .padding(.bottom, 14)
 
@@ -340,26 +347,17 @@ struct PopoverView: View {
                         .font(.system(size: 12))
                         .foregroundColor(.secondary.opacity(0.6))
                 }
-                if viewModel.isLoading {
-                    ProgressView()
-                        .scaleEffect(0.5)
-                        .frame(width: 12, height: 12)
-                }
+                // Fixed-size slot so the loading spinner never shifts surrounding elements
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .frame(width: 12, height: 12)
+                    .opacity(viewModel.isLoading ? 1 : 0)
                 if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String, !version.isEmpty {
                     Text("v\(version)")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-
-//                // DEBUG: Toggle service down
-//                Button(action: { viewModel.debugToggleServiceDown() }) {
-//                    Image(systemName: "ladybug.fill")
-//                        .font(.system(size: 12))
-//                        .foregroundColor(.red.opacity(0.5))
-//                }
-//                .buttonStyle(.plain)
-//                .help("Debug: Toggle service down")
 
                 Button(action: { viewModel.clearSessionKey() }) {
                     Label("Clear Key", systemImage: "key.slash")
@@ -370,11 +368,12 @@ struct PopoverView: View {
                 .help("Clear session key and return to setup")
 
                 Button(action: { viewModel.fetchUsage() }) {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Label(viewModel.isLoading ? "Refreshing…" : "Refresh", systemImage: "arrow.clockwise")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .disabled(viewModel.isLoading)
                 .help("Refresh")
             }
         }
