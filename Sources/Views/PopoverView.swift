@@ -463,37 +463,28 @@ struct PopoverView: View {
 struct AppIconView: View {
     var size: CGFloat = 48
 
-    private static let cachedImage: NSImage? = {
-        // Try SPM resource bundle first, fall back to app bundle Resources
-        let url: URL? = {
-            if let spm = Bundle.safeModule?.url(forResource: "icon", withExtension: "png") {
-                return spm
-            }
-            if let app = Bundle.main.url(forResource: "icon", withExtension: "png") {
-                return app
-            }
-            return nil
-        }()
-        guard let url = url, let image = NSImage(contentsOf: url) else { return nil }
-        image.size = NSSize(width: 256, height: 256)
-        return image
+    private static let cachedImage: NSImage = {
+        // Try SPM resource bundle, then main bundle Resources, then app icon from asset catalog
+        if let spm = Bundle.safeModule?.url(forResource: "icon", withExtension: "png"),
+           let image = NSImage(contentsOf: spm) {
+            image.size = NSSize(width: 256, height: 256)
+            return image
+        }
+        if let app = Bundle.main.url(forResource: "icon", withExtension: "png"),
+           let image = NSImage(contentsOf: app) {
+            image.size = NSSize(width: 256, height: 256)
+            return image
+        }
+        return NSImage(named: NSImage.applicationIconName) ?? NSImage()
     }()
 
     var body: some View {
-        Group {
-            if let nsImage = Self.cachedImage {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                Image(systemName: "chart.bar.fill")
-                    .font(.system(size: size * 0.6))
-                    .foregroundColor(.accent)
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
+        Image(nsImage: Self.cachedImage)
+            .resizable()
+            .interpolation(.high)
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
     }
 }
 

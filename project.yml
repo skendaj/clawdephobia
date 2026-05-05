@@ -16,6 +16,7 @@ targets:
     sources:
       - path: Sources
       - path: Resources/AppIcon.icns
+      - path: Resources/icon.png
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.claudephobia.app
