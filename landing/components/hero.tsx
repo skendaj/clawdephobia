@@ -1,19 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { Github } from "lucide-react";
 import { ApplePlain } from "@/components/icons/apple-plain";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Highlight } from "@/components/highlight";
+import { DownloadModal } from "@/components/download-modal";
 
 const HeroScene = dynamic(
   () => import("./hero-scene").then((m) => m.HeroScene),
   { ssr: false }
 );
 
-const DOWNLOAD_URL =
-  "https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg";
 const REPO_URL = "https://github.com/skendaj/clawdephobia";
 const APP_STORE_URL =
   "https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12";
@@ -22,8 +22,12 @@ const titleWords = ["Claude", "usage", "limits."];
 const titleEm = ["Right", "in", "your", "menu", "bar."];
 
 export function Hero() {
+  const [downloadOpen, setDownloadOpen] = useState(false);
+
   return (
-    <section className="relative pt-[64px] md:pt-14 pb-6 md:pb-8 px-4">
+    <>
+      <DownloadModal open={downloadOpen} onClose={() => setDownloadOpen(false)} />
+      <section className="relative pt-[64px] md:pt-14 pb-6 md:pb-8 px-4">
       <div className="relative z-10 mx-auto max-w-5xl text-center">
         <div className="mx-auto -mb-2 md:-mb-4 h-[120px] md:h-[150px] w-full max-w-md pointer-events-none">
           <HeroScene />
@@ -70,11 +74,9 @@ export function Hero() {
           transition={{ delay: 0.75, duration: 0.6 }}
           className="mt-7 flex items-center justify-center gap-3 flex-wrap"
         >
-          <Button asChild size="lg">
-            <a href={DOWNLOAD_URL}>
-              <ApplePlain className="h-4 w-4" />
-              Download for Mac
-            </a>
+          <Button size="lg" onClick={() => setDownloadOpen(true)}>
+            <ApplePlain className="h-4 w-4" />
+            Download for Mac
           </Button>
           <Button asChild size="lg" variant="soft">
             <a href={REPO_URL} target="_blank" rel="noreferrer">
@@ -112,7 +114,8 @@ export function Hero() {
           ▸ Psst… it&apos;s built for power users.
         </motion.p>
       </div>
-    </section>
+      </section>
+    </>
   );
 }
 

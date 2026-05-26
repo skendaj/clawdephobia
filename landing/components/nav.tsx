@@ -9,13 +9,11 @@ import { ApplePlain } from "@/components/icons/apple-plain";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const VERSION = "v1.0";
-const DOWNLOAD_URL =
-  "https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg";
+import { DownloadModal } from "@/components/download-modal";
 
 export function Nav({ dark = false }: { dark?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
   const secondaryHref = isHome ? "/faqs" : "/";
@@ -29,7 +27,9 @@ export function Nav({ dark = false }: { dark?: boolean }) {
   }, []);
 
   return (
-    <header
+    <>
+      <DownloadModal open={downloadOpen} onClose={() => setDownloadOpen(false)} />
+      <header
       className={cn(
         "fixed inset-x-0 top-0 z-50 flex items-center justify-between px-4 md:px-8 py-3",
         "border-b border-transparent transition-[background-color,backdrop-filter,border-color] duration-300 ease-out",
@@ -100,14 +100,13 @@ export function Nav({ dark = false }: { dark?: boolean }) {
           <SecondaryIcon className="h-4 w-4 sm:hidden" />
           <span className="hidden sm:inline">{secondaryLabel}</span>
         </Link>
-        <Button asChild size="default">
-          <a href={DOWNLOAD_URL}>
-            <ApplePlain className="h-4 w-4" />
-            <span className="hidden xs:inline">Download for Mac</span>
-            <span className="xs:hidden">Download</span>
-          </a>
+        <Button size="default" onClick={() => setDownloadOpen(true)}>
+          <ApplePlain className="h-4 w-4" />
+          <span className="hidden xs:inline">Download for Mac</span>
+          <span className="xs:hidden">Download</span>
         </Button>
       </nav>
     </header>
+    </>
   );
 }
