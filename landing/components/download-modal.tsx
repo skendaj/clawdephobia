@@ -83,29 +83,31 @@ export function DownloadModal({
           </a>
 
           <a
-            href={GITHUB_URL}
+            href="https://github.com/skendaj/clawdephobia"
+            target="_blank"
+            rel="noreferrer"
             className="flex items-center gap-4 rounded-xl border border-line bg-cream-2 p-4 hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out group"
           >
             <Github className="h-6 w-6 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-[15px]">Download DMG</p>
+              <p className="font-semibold text-[15px]">Star on GitHub</p>
               <p className="text-[12px] text-mute">
-                GitHub release &middot; Drag to Applications
+                Open source &middot; MIT license
               </p>
             </div>
             <ExternalLink className="h-4 w-4 shrink-0 text-mute/30 group-hover:text-mute/60 transition-colors" />
           </a>
         </div>
 
-        <div className="mt-4 text-center">
+        <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
           <a
-            href="https://github.com/skendaj/clawdephobia"
+            href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-line bg-cream-2 px-2.5 py-1 text-[11px] font-medium text-mute hover:text-ink hover:bg-white transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-cream-2 px-3.5 py-1.5 text-[13px] font-medium text-mute hover:text-ink hover:bg-white transition-colors"
           >
-            <Github className="h-3 w-3" />
-            Star on GitHub
+            <Github className="h-4 w-4" />
+            Download DMG
           </a>
         </div>
 
