@@ -97,7 +97,19 @@ export function DownloadModal({
           </a>
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-mute">
+        <div className="mt-4 text-center">
+          <a
+            href="https://github.com/skendaj/clawdephobia"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-cream-2 px-2.5 py-1 text-[11px] font-medium text-mute hover:text-ink hover:bg-white transition-colors"
+          >
+            <Github className="h-3 w-3" />
+            Star on GitHub
+          </a>
+        </div>
+
+        <p className="mt-3 text-center text-[11px] text-mute">
           Free &middot; Open source &middot; macOS 13+
         </p>
       </div>

@@ -35,4 +35,4 @@ Every download button targets the latest GitHub release asset:
 https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg
 ```
 
-When the Mac App Store build ships, swap the disabled card in `app/download/page.tsx` for a real link.
+The Mac App Store build is live at [apps.apple.com/us/app/clawdephobia-track-usage/id6761192797](https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12).

@@ -12,8 +12,11 @@
   <a href="https://clawdephobia.vercel.app">
     <img src="https://img.shields.io/badge/Website-clawdephobia.vercel.app-1F1E1D?style=for-the-badge&logo=vercel&logoColor=white" alt="Website">
   </a>
+  <a href="https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12">
+    <img src="https://img.shields.io/badge/Mac_App_Store-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Mac App Store">
+  </a>
   <a href="https://github.com/skendaj/Claudephobia/releases/latest/download/Clawdephobia.dmg">
-    <img src="https://img.shields.io/badge/Download-Clawdephobia.dmg-D97757?style=for-the-badge&logo=apple&logoColor=white" alt="Download">
+    <img src="https://img.shields.io/badge/DMG_GitHub-D97757?style=for-the-badge&logo=github&logoColor=white" alt="Download DMG">
   </a>
 </p>
 
@@ -62,7 +65,11 @@ The key looks like `sk-ant-sid01-...`. Paste it into clawdephobia when prompted.
 
 ## Install
 
-### Download (recommended)
+### Mac App Store (recommended)
+
+Get it from the [Mac App Store](https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12) — one-click install with automatic updates.
+
+### Download DMG
 
 1. Go to [Releases](../../releases) and download `Clawdephobia.dmg`
 2. Open the DMG and drag `Clawdephobia.app` to your Applications folder

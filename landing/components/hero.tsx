@@ -78,12 +78,6 @@ export function Hero() {
             <ApplePlain className="h-4 w-4" />
             Download for Mac
           </Button>
-          <Button asChild size="lg" variant="soft">
-            <a href={REPO_URL} target="_blank" rel="noreferrer">
-              <Github className="h-4 w-4" />
-              View on GitHub
-            </a>
-          </Button>
         </motion.div>
 
         <motion.div
@@ -102,6 +96,15 @@ export function Hero() {
           >
             <ApplePlain className="h-3 w-3" />
             Mac App Store
+          </a>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-cream-2 px-2.5 py-0.5 text-[11px] font-medium text-graphite hover:bg-cream-3 transition-colors"
+          >
+            <Github className="h-3 w-3" />
+            GitHub
           </a>
         </motion.div>
 

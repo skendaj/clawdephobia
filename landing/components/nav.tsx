@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DownloadModal } from "@/components/download-modal";
 
+const VERSION = "v1.0";
+
 export function Nav({ dark = false }: { dark?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
