@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 const DOWNLOAD_URL =
   "https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg";
 const REPO_URL = "https://github.com/skendaj/clawdephobia";
+const APP_STORE_URL =
+  "https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12";
 
 export function CTA() {
   return (
@@ -16,13 +18,19 @@ export function CTA() {
         Free, open source, and built for people who live in Claude.
       </p>
       <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
-        <Button asChild size="lg">
-          <a href={DOWNLOAD_URL}>
+        <Button asChild size="lg" variant="soft">
+          <a href={APP_STORE_URL} target="_blank" rel="noreferrer">
             <ApplePlain className="h-4 w-4" />
-            Download for Mac
+            Mac App Store
           </a>
         </Button>
-        <Button asChild size="lg" variant="soft">
+        <Button asChild size="lg">
+          <a href={DOWNLOAD_URL}>
+            <Github className="h-4 w-4" />
+            Download DMG
+          </a>
+        </Button>
+        <Button asChild size="lg" variant="ghost">
           <a href={REPO_URL} target="_blank" rel="noreferrer">
             <Github className="h-4 w-4" />
             Star on GitHub

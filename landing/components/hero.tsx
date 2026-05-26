@@ -15,6 +15,8 @@ const HeroScene = dynamic(
 const DOWNLOAD_URL =
   "https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg";
 const REPO_URL = "https://github.com/skendaj/clawdephobia";
+const APP_STORE_URL =
+  "https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12";
 
 const titleWords = ["Claude", "usage", "limits."];
 const titleEm = ["Right", "in", "your", "menu", "bar."];
@@ -90,10 +92,15 @@ export function Hero() {
         >
           <span>Free · Open source · macOS 13+</span>
           <span className="hidden sm:inline text-mute/50">·</span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-cream-2 px-2.5 py-0.5 text-[11px] font-medium text-graphite">
+          <a
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-cream-2 px-2.5 py-0.5 text-[11px] font-medium text-graphite hover:bg-cream-3 transition-colors"
+          >
             <ApplePlain className="h-3 w-3" />
-            Mac App Store · Coming Soon
-          </span>
+            Mac App Store
+          </a>
         </motion.div>
 
         <motion.p

@@ -35,6 +35,7 @@ The fear of hitting your Claude limits. Clawdephobia shows your 5-hour and 7-day
 - **Auth:** Claude session cookie (no API key)
 - **Privacy:** Local-first; session key stored in macOS Keychain
 - **Download:** https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg
+- **Mac App Store:** https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12
 - **Source:** https://github.com/skendaj/clawdephobia
 - **Website:** https://clawdephobia.vercel.app
 

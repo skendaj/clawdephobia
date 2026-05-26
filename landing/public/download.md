@@ -22,7 +22,7 @@ Free, open-source, signed and notarized by Apple. Distributed via GitHub Release
 
 ## Mac App Store
 
-Planned. Not yet available — subscribe to the GitHub repo to be notified when MAS goes live.
+Available now: https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12
 
 ## After Install — Get Your Session Key
 

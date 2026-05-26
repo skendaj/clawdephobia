@@ -7,7 +7,6 @@ import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { Highlight } from "@/components/highlight";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { breadcrumbJsonLd } from "@/lib/breadcrumb";
 import type { Metadata } from "next";
 
@@ -19,6 +18,8 @@ const breadcrumbLd = breadcrumbJsonLd([
 const DOWNLOAD_URL =
   "https://github.com/skendaj/clawdephobia/releases/latest/download/Clawdephobia.dmg";
 const REPO_URL = "https://github.com/skendaj/clawdephobia";
+const APP_STORE_URL =
+  "https://apps.apple.com/us/app/clawdephobia-track-usage/id6761192797?mt=12";
 
 export const metadata: Metadata = {
   title: "Download — Clawdephobia",
@@ -115,24 +116,27 @@ export default async function DownloadPage() {
             </div>
           </a>
 
-          <div
-            aria-disabled
-            className="relative flex flex-col items-center rounded-[var(--radius-card)] border border-dashed border-ink/15 bg-cream-2/40 p-8 opacity-80 cursor-not-allowed"
+          <a
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative flex flex-col items-center rounded-[var(--radius-card)] border border-line bg-cream-2 p-8 card-shadow transition-transform duration-300 hover:-translate-y-1"
           >
-            <Badge className="absolute top-4 right-4">Coming soon</Badge>
-            <div className="h-24 w-24 rounded-[20px] bg-white/60 border border-line flex items-center justify-center mb-5">
+            <div className="h-24 w-24 rounded-[20px] bg-white border border-line flex items-center justify-center mb-5">
               <ApplePlain className="h-10 w-10" />
             </div>
             <p className="font-display font-semibold text-lg">Mac App Store</p>
             <p className="mt-1 text-[13px] text-mute">One-click install</p>
             <p className="text-[13px] text-mute">Automatic updates</p>
             <div className="mt-5">
-              <Button variant="soft" disabled>
-                <ApplePlain className="h-4 w-4" />
-                Get from App Store
+              <Button asChild>
+                <span>
+                  <ApplePlain className="h-4 w-4" />
+                  Get from App Store
+                </span>
               </Button>
             </div>
-          </div>
+          </a>
         </div>
 
         <div className="mt-16 max-w-2xl mx-auto text-left">
