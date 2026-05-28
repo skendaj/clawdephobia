@@ -30,6 +30,14 @@ const nextConfig: NextConfig = {
           { key: "Content-Type", value: "text/plain; charset=utf-8" },
         ],
       },
+      {
+        source: "/admin/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
     ];
   },
 };
