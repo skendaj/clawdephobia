@@ -39,7 +39,7 @@ async function fetchReleases(): Promise<Release[]> {
   }
   const res = await fetch(
     "https://api.github.com/repos/skendaj/clawdephobia/releases?per_page=100",
-    { headers, cache: "no-store" }
+    { headers, next: { revalidate: 600 } }
   );
   if (!res.ok) {
     throw new Error(`GitHub API ${res.status}: ${await res.text()}`);
