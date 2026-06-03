@@ -112,8 +112,8 @@ return ClawdUsageData(
         }
         
         return ClawdUsageData(
-            fiveHour: parseLimit(dict["five_hour"]),
-            sevenDay: parseLimit(dict["seven_day"]),
+            fiveHour: parseLimit(dict["five_hour"], required: true),
+            sevenDay: parseLimit(dict["seven_day"], required: true),
             sevenDayOpus: parseLimit(dict["seven_day_opus"]),
             sevenDaySonnet: parseLimit(dict["seven_day_sonnet"]),
             sevenDayOAuthApps: parseLimit(dict["seven_day_oauth_apps"]),
@@ -186,19 +186,19 @@ return ClawdUsageData(
 
     // MARK: - Parse
 
-    private func parseLimit(_ value: Any?) -> RateLimitInfo? {
+    // required=true: return a zero RateLimitInfo even when utilization=0 and
+    // resets_at=null (team org Enterprise accounts). required=false (default):
+    // suppress those rows to avoid empty UI clutter (e.g. omelette_promotional).
+    private func parseLimit(_ value: Any?, required: Bool = false) -> RateLimitInfo? {
         guard let dict = value as? [String: Any] else { return nil }
 
         guard let utilization = dict["utilization"] as? Double else { return nil }
 
         let percent = utilization >= 1 ? utilization / 100.0 : utilization
 
-        // Skip zero-utilization rows that have no reset window (e.g. enterprise
-        // `omelette_promotional` with utilization 0 and resets_at null). Showing
-        // them in the UI would clutter the popover with empty rows.
         let rawReset = dict["resets_at"] as? String
         guard let str = rawReset else {
-            if percent <= 0 { return nil }
+            if percent <= 0 && !required { return nil }
             return makeRateLimitInfo(percent: percent, resetsAt: .distantFuture)
         }
 
