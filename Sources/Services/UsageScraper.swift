@@ -88,7 +88,7 @@ return ClawdUsageData(
                 throw error // Non-retryable errors propagate immediately
             }
         }
-        throw lastError!
+        throw lastError ?? ClawdAPIError.invalidResponse("Unknown error after retries")
     }
 
     // MARK: - API Calls

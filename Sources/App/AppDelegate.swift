@@ -306,15 +306,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func closeSettingsWindow() {
         settingsWindow?.orderOut(nil)
-        DispatchQueue.main.async { [weak self] in
-            self?.settingsWindow = nil
-            // Revert to accessory app (no dock icon)
-            NSApp.setActivationPolicy(.accessory)
-        }
+        settingsWindow = nil
+        NSApp.setActivationPolicy(.accessory)
     }
 
     func windowWillClose(_ notification: Notification) {
         guard (notification.object as? NSWindow) === settingsWindow else { return }
         closeSettingsWindow()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        return .terminateCancel
     }
 }
