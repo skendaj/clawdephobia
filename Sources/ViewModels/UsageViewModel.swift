@@ -103,6 +103,7 @@ final class UsageViewModel: ObservableObject {
     @Published var notificationsEnabled: Bool = true
     @Published var showSettingsWindow: Bool = false
     @Published var pendingShareAction: ShareAction? = nil
+    @Published var closePopoverRequested: Bool = false
     @Published var lastUpdated: Date? = nil
     @Published var errorMessage: String? = nil
     @Published var isLoading: Bool = false

@@ -684,7 +684,7 @@ private struct FirstRunSetupView: View {
         VStack(spacing: 14) {
             HStack {
                 Spacer()
-                Button(action: { NSApplication.shared.terminate(nil) }) {
+                Button(action: { viewModel.closePopoverRequested = true }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)

@@ -132,6 +132,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
             .store(in: &cancellables)
 
+        // Close popover when requested from within SwiftUI views (e.g. setup screen dismiss)
+        viewModel.$closePopoverRequested
+            .filter { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.viewModel.closePopoverRequested = false
+                self?.closePopover()
+            }
+            .store(in: &cancellables)
+
         // Pause countdown timer when popover is hidden — no visible content to update
         NotificationCenter.default.addObserver(
             forName: NSPopover.willShowNotification,
@@ -313,9 +323,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard (notification.object as? NSWindow) === settingsWindow else { return }
         closeSettingsWindow()
-    }
-
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        return .terminateCancel
     }
 }
