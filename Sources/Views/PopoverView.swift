@@ -65,6 +65,7 @@ struct PopoverView: View {
                 .padding(.bottom, 14)
 
             terminalSwitchBanner
+            failoverPromptBanner
 
             if viewModel.isUnauthorized {
                 expiredBanner
@@ -219,6 +220,38 @@ struct PopoverView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
                 terminalSwitchNote = nil
             }
+        }
+    }
+
+    /// Confirm-mode failover prompt: appears when the active account is nearly out and
+    /// the user opted to be asked before switching. Mirrors the auto-jump notification.
+    @ViewBuilder
+    private var failoverPromptBanner: some View {
+        if let p = viewModel.pendingFailover {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 11))
+                        .foregroundColor(.accent)
+                    Text("\(p.fromLabel) is at \(p.fromPercent)%. Switch to \(p.toLabel)?")
+                        .font(.caption2)
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack(spacing: 8) {
+                    Button("Switch to \(p.toLabel)") { viewModel.acceptFailover() }
+                        .controlSize(.small)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accent)
+                    Button("Not now") { viewModel.dismissFailover() }
+                        .controlSize(.small)
+                }
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accent.opacity(0.08))
+            .cornerRadius(6)
+            .padding(.bottom, 6)
         }
     }
 

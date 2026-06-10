@@ -141,6 +141,26 @@ final class UsageViewModel: ObservableObject {
     /// Launch at login via SMAppService
     @Published var launchAtLogin: Bool = false
 
+    /// Account failover behaviour when the active account is nearly out of usage.
+    /// 0 = off, 1 = manual (notify only, default), 2 = ask to confirm, 3 = automatic.
+    @Published var failoverMode: Int = 1
+
+    /// Set in `confirm` mode when a jump is suggested — drives the popover prompt.
+    @Published var pendingFailover: PendingFailover? = nil
+
+    struct PendingFailover: Equatable {
+        let fromLabel: String
+        let toId: String
+        let toLabel: String
+        let fromPercent: Int
+    }
+
+    /// Either limit at/above this fraction marks the active account "almost out".
+    private let failoverTriggerThreshold: Double = 0.95
+    /// Account we've already acted on this over-threshold episode, to avoid re-alerting
+    /// every refresh. Cleared when the active account changes or drops back below.
+    private var failoverAlertedAccountId: String?
+
     // MARK: - Services
 
     let accountStore: AccountStore
@@ -220,6 +240,8 @@ final class UsageViewModel: ObservableObject {
     private func attachActiveAccount() {
         refreshTimer?.invalidate()
         refreshTimer = nil
+        failoverAlertedAccountId = nil
+        pendingFailover = nil
         clearActiveState()
         guard let id = accountStore.activeId,
               let key = accountStore.activeSessionKey else { return }
@@ -388,6 +410,7 @@ final class UsageViewModel: ObservableObject {
                     errorMessage = nil
                 }
 
+                evaluateFailover()
                 adjustRefreshRate()
                 await checkForUpdate()
             } catch ClawdAPIError.rateLimited {
@@ -443,6 +466,80 @@ final class UsageViewModel: ObservableObject {
     }
 
     // MARK: - Settings Actions
+
+    func setFailoverMode(_ mode: Int) {
+        failoverMode = mode
+        UserDefaults.standard.set(mode, forKey: "clawdephobia.failover_mode")
+        if mode == 0 { pendingFailover = nil }
+    }
+
+    /// Confirm-mode actions, driven by the popover prompt.
+    func acceptFailover() {
+        guard let target = pendingFailover else { return }
+        pendingFailover = nil
+        accountStore.setActive(target.toId)
+    }
+
+    func dismissFailover() {
+        pendingFailover = nil
+    }
+
+    // MARK: - Failover
+
+    /// After a fresh fetch, if the active account is nearly out of usage, surface (or perform)
+    /// a jump to the account with the most headroom, per `failoverMode`. Throttled to once per
+    /// over-threshold episode via `failoverAlertedAccountId`.
+    private func evaluateFailover() {
+        guard failoverMode != 0, !isDemoMode, let activeId = accountStore.activeId else { return }
+
+        let worst = max(sessionPercent, weeklyPercent)
+        guard worst >= failoverTriggerThreshold else {
+            if failoverAlertedAccountId == activeId { failoverAlertedAccountId = nil }
+            if pendingFailover != nil { pendingFailover = nil }
+            return
+        }
+        guard failoverAlertedAccountId != activeId else { return }
+        guard let target = bestFailoverTarget(excluding: activeId) else { return }
+
+        failoverAlertedAccountId = activeId
+        let fromLabel = accountStore.account(for: activeId)?.label ?? "This account"
+        let toLabel = accountStore.account(for: target.id)?.label ?? "another account"
+        let pct = Int(worst * 100)
+
+        switch failoverMode {
+        case 3: // automatic
+            notificationManager.sendLocal(
+                title: "Switched to \(toLabel)",
+                body: "\(fromLabel) hit \(pct)% — moved you to \(toLabel), which has the most headroom."
+            )
+            accountStore.setActive(target.id)
+        case 2: // confirm
+            pendingFailover = PendingFailover(fromLabel: fromLabel, toId: target.id,
+                                              toLabel: toLabel, fromPercent: pct)
+            notificationManager.sendLocal(
+                title: "\(fromLabel) is almost out",
+                body: "At \(pct)%. Open Clawdephobia to switch to \(toLabel)."
+            )
+        default: // 1 = manual (notify only)
+            notificationManager.sendLocal(
+                title: "\(fromLabel) is almost out",
+                body: "At \(pct)%. \(toLabel) has the most headroom — switch from the menu when ready."
+            )
+        }
+    }
+
+    /// The other (non-demo) account with the most headroom — lowest max(session, weekly) — that
+    /// still has room (below the trigger threshold). `nil` when no suitable account is known yet.
+    private func bestFailoverTarget(excluding activeId: String) -> Account? {
+        let scored: [(Account, Double)] = accountStore.accounts.compactMap { acc in
+            guard acc.id != activeId, !acc.isDemo,
+                  let peek = accountStore.peeks[acc.id] else { return nil }
+            let worst = max(peek.sessionPercent, peek.weeklyPercent)
+            guard worst < failoverTriggerThreshold else { return nil }
+            return (acc, worst)
+        }
+        return scored.min(by: { $0.1 < $1.1 })?.0
+    }
 
     func setMenuBarDisplayMode(_ mode: Int) {
         menuBarDisplayMode = mode
@@ -1062,6 +1159,7 @@ final class UsageViewModel: ObservableObject {
         criticalThreshold = UserDefaults.standard.object(forKey: "clawdephobia.critical_threshold") as? Double ?? 0.90
         launchAtLogin = SMAppService.mainApp.status == .enabled
         notifyOnReset = UserDefaults.standard.object(forKey: "clawdephobia.notify_on_reset") as? Bool ?? true
+        failoverMode = UserDefaults.standard.object(forKey: "clawdephobia.failover_mode") as? Int ?? 1
         pushNotificationsEnabled = UserDefaults.standard.bool(forKey: "clawdephobia.push_enabled")
         pushTopic = UserDefaults.standard.string(forKey: "clawdephobia.push_topic") ?? ""
         pushServerURL = UserDefaults.standard.string(forKey: "clawdephobia.push_server_url") ?? "https://ntfy.sh"

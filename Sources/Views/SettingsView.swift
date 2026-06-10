@@ -511,7 +511,43 @@ struct SettingsView: View {
             Divider()
             terminalSyncSection
 
+            Divider()
+            failoverSection
+
             Spacer(minLength: 0)
+        }
+    }
+
+    /// "Auto-jump to another account" controls. When the active account is nearly out of
+    /// usage, Clawdephobia can notify, ask, or automatically switch to the account with the
+    /// most headroom (and re-point the terminal too, if that's linked).
+    @ViewBuilder
+    private var failoverSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                Text("Switch accounts when usage runs low")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+
+            Picker("When an account nears its limit (95%)", selection: Binding(
+                get: { viewModel.failoverMode },
+                set: { viewModel.setFailoverMode($0) }
+            )) {
+                Text("Off").tag(0)
+                Text("Notify me (manual)").tag(1)
+                Text("Ask to switch").tag(2)
+                Text("Switch automatically").tag(3)
+            }
+            .pickerStyle(.menu)
+            .font(.caption)
+
+            Text("Jumps to whichever of your other accounts has the most headroom. If terminal sync is on and that account is linked, the `claude` CLI follows too.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
