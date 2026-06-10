@@ -23,6 +23,7 @@ final class AccountStore: ObservableObject {
     private static let activeIdKey = "clawdephobia.active_account_id"
     private static let schemaKey = "clawdephobia.accounts_schema_v1"
     private static let legacySessionKeychainKey = "session_key"
+    static let syncTerminalLoginKey = "clawdephobia.sync_terminal_login"
 
     /// Synthetic in-memory key for the demo account.
     static let demoSessionKey = "sk-ant-demo01-xK9pQr2vT8wLnY7cBZhJ5dF0uCmNqWsA3e6R1P4xK9pQr2vT8wLnY7-AA"
@@ -97,8 +98,48 @@ final class AccountStore: ObservableObject {
     func setActive(_ id: String) {
         guard accounts.contains(where: { $0.id == id }) else { return }
         guard id != activeId else { return }
+        let previousId = activeId
+        syncTerminalOnSwitch(from: previousId, to: id)
         activeId = id
         persistActiveId()
+    }
+
+    // MARK: - Terminal (Claude Code CLI) login sync
+
+    /// True when the user has opted in to swapping the `claude` CLI login on account switch.
+    var syncTerminalLoginEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Self.syncTerminalLoginKey)
+    }
+
+    /// True when this account has a captured CLI login snapshot to restore on switch.
+    func terminalLoginLinked(for id: String) -> Bool {
+        ClaudeCodeCredentialBridge.loadSnapshot(for: id) != nil
+    }
+
+    /// True when a `claude` process is currently running (its session won't pick up a swap).
+    func isClaudeRunning() -> Bool {
+        ClaudeCodeCredentialBridge.isClaudeRunning()
+    }
+
+    /// Captures the live `Claude Code-credentials` Keychain item and links it to `id`.
+    /// Surfaces `ClaudeCodeCredentialBridge.BridgeError` (e.g. `.notLoggedIn`) on failure.
+    func captureTerminalLogin(for id: String) throws {
+        let blob = try ClaudeCodeCredentialBridge.captureLive()
+        ClaudeCodeCredentialBridge.storeSnapshot(blob, for: id)
+    }
+
+    /// On switch: refresh the outgoing account's snapshot from the live item (only if it was
+    /// already linked, so we never mislabel a login the app didn't capture), then restore the
+    /// incoming account's snapshot to the live item. No-ops when the feature is off/unsupported
+    /// or the incoming account has no snapshot (leaving the live login untouched).
+    private func syncTerminalOnSwitch(from previousId: String?, to newId: String) {
+        guard syncTerminalLoginEnabled, ClaudeCodeCredentialBridge.isSupported else { return }
+        if let previousId, ClaudeCodeCredentialBridge.loadSnapshot(for: previousId) != nil,
+           let live = try? ClaudeCodeCredentialBridge.captureLive() {
+            ClaudeCodeCredentialBridge.storeSnapshot(live, for: previousId)
+        }
+        guard let blob = ClaudeCodeCredentialBridge.loadSnapshot(for: newId) else { return }
+        try? ClaudeCodeCredentialBridge.writeLive(blob)
     }
 
     func rename(_ id: String, to newLabel: String) {
@@ -150,6 +191,7 @@ final class AccountStore: ObservableObject {
         if id != Account.demoId {
             KeychainHelper.delete(key: Self.keychainKey(for: id))
         }
+        ClaudeCodeCredentialBridge.deleteSnapshot(for: id)
         notificationManager.reset(accountId: id)
         persistAccounts()
         if activeId == id {
@@ -172,6 +214,7 @@ final class AccountStore: ObservableObject {
     func removeAll() {
         for account in accounts where !account.isDemo {
             KeychainHelper.delete(key: Self.keychainKey(for: account.id))
+            ClaudeCodeCredentialBridge.deleteSnapshot(for: account.id)
         }
         accounts.removeAll()
         peeks.removeAll()

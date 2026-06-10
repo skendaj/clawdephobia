@@ -14,6 +14,14 @@ enum ClaudeCodeCredentialBridge {
     static let liveService = "Claude Code-credentials"
     private static let snapshotKeyPrefix = "cc_credentials."
 
+    /// Terminal sync requires reading/writing another app's Keychain item, which the
+    /// macOS sandbox forbids. The Mac App Store build is sandboxed; the direct-download
+    /// (DevID/DMG) and Debug builds are not. The sandbox exposes a container id in the
+    /// environment, which we use as the runtime gate.
+    static var isSupported: Bool {
+        ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] == nil
+    }
+
     enum BridgeError: LocalizedError {
         case notLoggedIn
         case keychainWriteFailed(OSStatus)

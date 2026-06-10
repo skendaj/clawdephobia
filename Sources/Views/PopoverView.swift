@@ -30,6 +30,7 @@ struct PopoverView: View {
     @State private var showAddSheet: Bool = false
     @State private var showRemoveConfirm: Bool = false
     @State private var showInactive: Bool = false
+    @State private var terminalSwitchNote: String? = nil
 
     /// A flattened, render-ready row for the popover usage list. Built fresh each
     /// pass so we partition into active/idle without keeping any extra view-model state.
@@ -62,6 +63,8 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
                 .padding(.bottom, 14)
+
+            terminalSwitchBanner
 
             if viewModel.isUnauthorized {
                 expiredBanner
@@ -140,7 +143,7 @@ struct PopoverView: View {
             // Each account row — click to set active
             ForEach(accountStore.accounts) { account in
                 Button {
-                    viewModel.setActiveAccount(account.id)
+                    switchAccount(to: account.id)
                 } label: {
                     HStack {
                         if account.id == accountStore.activeId {
@@ -178,6 +181,42 @@ struct PopoverView: View {
         .menuIndicator(.hidden)
         .layoutPriority(0)
         .help(accountStore.activeAccount?.label ?? "")
+    }
+
+    /// Switches the active account and, when terminal sync is on, surfaces a transient
+    /// note if a `claude` session is running (it won't pick up the swap until restarted).
+    private func switchAccount(to id: String) {
+        guard id != accountStore.activeId else { return }
+        viewModel.setActiveAccount(id)
+        guard accountStore.syncTerminalLoginEnabled,
+              ClaudeCodeCredentialBridge.isSupported,
+              accountStore.terminalLoginLinked(for: id) else { return }
+        if accountStore.isClaudeRunning() {
+            terminalSwitchNote = "Terminal switched. Start a new `claude` session to use this account — running sessions keep the old login."
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                terminalSwitchNote = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var terminalSwitchBanner: some View {
+        if let note = terminalSwitchNote {
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 11))
+                    .foregroundColor(.accent)
+                Text(note)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accent.opacity(0.08))
+            .cornerRadius(6)
+            .padding(.bottom, 6)
+        }
     }
 
     /// Trims overly verbose org labels like `"someone@example.com's Organization"`

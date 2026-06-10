@@ -34,6 +34,11 @@ struct SettingsView: View {
     @State private var renameDraft: String = ""
     @State private var removeCandidateId: String? = nil
 
+    @AppStorage(AccountStore.syncTerminalLoginKey) private var syncTerminalLogin = false
+    @State private var captureError: String? = nil
+    /// Bumped after a capture so rows re-evaluate `terminalLoginLinked` (a Keychain read).
+    @State private var terminalLinkRefresh = 0
+
     var body: some View {
         HStack(spacing: 0) {
             // Sidebar
@@ -503,7 +508,59 @@ struct SettingsView: View {
                 .font(.caption)
             }
 
+            Divider()
+            terminalSyncSection
+
             Spacer(minLength: 0)
+        }
+    }
+
+    /// "Switch the terminal too" controls. The CLI login lives in another app's Keychain
+    /// item, which the sandbox forbids — so this whole section only appears in the
+    /// direct-download build (see `ClaudeCodeCredentialBridge.isSupported`).
+    @ViewBuilder
+    private var terminalSyncSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "terminal")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                Text("Terminal (Claude Code)")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+
+            if ClaudeCodeCredentialBridge.isSupported {
+                Toggle("Switch the terminal login when I change accounts", isOn: $syncTerminalLogin)
+                    .font(.caption)
+                    .toggleStyle(.checkbox)
+
+                Text("Run `claude login` for an account in Terminal, then click the terminal icon on its row to link it. Switching accounts will then re-point `claude` to that login. Already-running `claude` sessions keep their old login until restarted.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let captureError {
+                    Text(captureError)
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                Text("Switching the terminal's `claude` login is only available in the direct-download (DMG) version — the Mac App Store sandbox doesn't allow it.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func captureTerminal(_ id: String) {
+        do {
+            try accountStore.captureTerminalLogin(for: id)
+            captureError = nil
+            terminalLinkRefresh += 1
+        } catch {
+            captureError = error.localizedDescription
         }
     }
 
@@ -567,6 +624,20 @@ struct SettingsView: View {
             Text("\(Int(session * 100))% / \(Int(weekly * 100))%")
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundColor(.secondary)
+
+            if ClaudeCodeCredentialBridge.isSupported && !account.isDemo {
+                let _ = terminalLinkRefresh   // re-evaluate the Keychain read after a capture
+                let linked = accountStore.terminalLoginLinked(for: account.id)
+                Button(action: { captureTerminal(account.id) }) {
+                    Image(systemName: linked ? "terminal.fill" : "terminal")
+                        .font(.system(size: 12))
+                        .foregroundColor(linked ? Color(red: 0xDE/255.0, green: 0x73/255.0, blue: 0x56/255.0) : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(linked
+                      ? "Terminal login linked — click to re-capture the current `claude login`"
+                      : "Link this account's terminal login (run `claude login` first)")
+            }
 
             Button(action: { startRename(account) }) {
                 Image(systemName: "pencil")
