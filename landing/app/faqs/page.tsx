@@ -85,6 +85,22 @@ const faqJsonLd = {
     },
     {
       "@type": "Question",
+      name: "Can Clawdephobia switch my terminal's Claude Code (claude CLI) account?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes, in the direct-download build. Enable terminal sync in Settings → Accounts, run claude login for each account once and capture it, and then switching accounts in the app re-points the claude CLI to that account. The Mac App Store build can't do this because the sandbox forbids touching another app's login.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can Clawdephobia switch accounts automatically when one runs low?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. When an account crosses 95% on its 5-hour or 7-day limit, Clawdephobia can notify you, ask before switching, or switch automatically to whichever account has the most headroom — optionally taking the terminal's claude login along too.",
+      },
+    },
+    {
+      "@type": "Question",
       name: "Can I get notifications on my phone when hitting Claude limits?",
       acceptedAnswer: {
         "@type": "Answer",

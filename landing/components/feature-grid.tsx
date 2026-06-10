@@ -10,11 +10,15 @@ import {
   CreditCard,
   Share2,
   ShieldCheck,
+  Terminal,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Scribble } from "@/components/highlight";
 
 const FEATURES = [
   { icon: Users, label: "Multiple\naccounts" },
+  { icon: Terminal, label: "Switch the\nterminal too" },
+  { icon: ArrowLeftRight, label: "Auto-switch\non low usage" },
   { icon: Activity, label: "Live usage\nbars" },
   { icon: Bell, label: "Smart\nnotifications" },
   { icon: Smartphone, label: "Phone push\nvia ntfy" },
