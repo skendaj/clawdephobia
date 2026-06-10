@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         var menuBarDisplayMode: Int
         var isEnterprise: Bool
         var enterprisePercent: Double
+        var terminalSyncActive: Bool
+        var terminalConnected: Bool
     }
     private var lastRenderedState: MenuBarRenderState?
 
@@ -94,6 +96,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         .store(in: &cancellables)
 
+        // Re-render when the terminal sync status changes (toggle, switch, capture)
+        accountStore.$terminalSyncState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateMenuBarDisplay()
+            }
+            .store(in: &cancellables)
+
         // Open settings window when requested
         viewModel.$showSettingsWindow
             .filter { $0 }
@@ -166,6 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         let isEnterprise = viewModel.isEnterprise
         let enterprisePercent = viewModel.extraUsagePercent ?? 0
+        let terminalSyncState = accountStore.terminalSyncState
 
         let state = MenuBarRenderState(
             sessionPercent: viewModel.sessionPercent,
@@ -175,7 +186,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             menuBarProgressStyle: viewModel.menuBarProgressStyle,
             menuBarDisplayMode: viewModel.menuBarDisplayMode,
             isEnterprise: isEnterprise,
-            enterprisePercent: enterprisePercent
+            enterprisePercent: enterprisePercent,
+            terminalSyncActive: terminalSyncState != .off,
+            terminalConnected: terminalSyncState == .connected
         )
         if state != lastRenderedState {
             lastRenderedState = state
@@ -186,7 +199,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 isServiceDown: state.isServiceDown,
                 menuBarProgressStyle: state.menuBarProgressStyle,
                 isEnterprise: state.isEnterprise,
-                enterprisePercent: state.enterprisePercent
+                enterprisePercent: state.enterprisePercent,
+                terminalSyncActive: state.terminalSyncActive,
+                terminalConnected: state.terminalConnected
             )
             button.imagePosition = .imageLeading
         }

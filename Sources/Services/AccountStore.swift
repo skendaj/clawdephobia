@@ -12,6 +12,17 @@ final class AccountStore: ObservableObject {
     @Published private(set) var activeId: String?
     @Published private(set) var peeks: [String: AccountPeek] = [:]
 
+    /// Drives the terminal status logo (menu bar + popover). Recomputed whenever the active
+    /// account, the sync opt-in, or a capture/remove changes the picture. See `terminalSyncState`.
+    @Published private(set) var terminalSyncState: TerminalSyncState = .off
+
+    /// Status of the "switch the terminal too" link for the *active* account.
+    enum TerminalSyncState: Equatable {
+        case off          // feature unsupported, or the sync toggle is off — show nothing
+        case needsSetup   // sync on, but the active account has no captured CLI login (grey)
+        case connected    // sync on and the active account is linked — a real switch (green)
+    }
+
     /// In-memory cache of the last successful `ClawdUsageData` per account. Survives
     /// switches within a session so the popover can repaint stale data when the user
     /// flips back to an account whose key has expired. Reset on app relaunch.
@@ -23,6 +34,7 @@ final class AccountStore: ObservableObject {
     private static let activeIdKey = "clawdephobia.active_account_id"
     private static let schemaKey = "clawdephobia.accounts_schema_v1"
     private static let legacySessionKeychainKey = "session_key"
+    static let syncTerminalLoginKey = "clawdephobia.sync_terminal_login"
 
     /// Synthetic in-memory key for the demo account.
     static let demoSessionKey = "sk-ant-demo01-xK9pQr2vT8wLnY7cBZhJ5dF0uCmNqWsA3e6R1P4xK9pQr2vT8wLnY7-AA"
@@ -34,6 +46,7 @@ final class AccountStore: ObservableObject {
     init(notificationManager: NotificationManager) {
         self.notificationManager = notificationManager
         loadFromDisk()
+        refreshTerminalSyncState()
         startInactiveTimer()
         Task { await migrateIfNeeded() }
     }
@@ -97,8 +110,64 @@ final class AccountStore: ObservableObject {
     func setActive(_ id: String) {
         guard accounts.contains(where: { $0.id == id }) else { return }
         guard id != activeId else { return }
+        let previousId = activeId
+        syncTerminalOnSwitch(from: previousId, to: id)
         activeId = id
         persistActiveId()
+        refreshTerminalSyncState()
+    }
+
+    // MARK: - Terminal (Claude Code CLI) login sync
+
+    /// True when the user has opted in to swapping the `claude` CLI login on account switch.
+    var syncTerminalLoginEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Self.syncTerminalLoginKey)
+    }
+
+    /// Recomputes `terminalSyncState` for the active account. Call after anything that can
+    /// change it: active-account switch, capture, remove, or the sync toggle flipping.
+    func refreshTerminalSyncState() {
+        let newState: TerminalSyncState
+        if !ClaudeCodeCredentialBridge.isSupported || !syncTerminalLoginEnabled {
+            newState = .off
+        } else if let id = activeId, terminalLoginLinked(for: id) {
+            newState = .connected
+        } else {
+            newState = .needsSetup
+        }
+        if newState != terminalSyncState { terminalSyncState = newState }
+    }
+
+    /// True when this account has a captured CLI login snapshot to restore on switch.
+    func terminalLoginLinked(for id: String) -> Bool {
+        ClaudeCodeCredentialBridge.loadSnapshot(for: id) != nil
+    }
+
+    /// True when a `claude` process is currently running (its session won't pick up a swap).
+    func isClaudeRunning() -> Bool {
+        ClaudeCodeCredentialBridge.isClaudeRunning()
+    }
+
+    /// Captures the live `Claude Code-credentials` Keychain item and links it to `id`.
+    /// Surfaces `ClaudeCodeCredentialBridge.BridgeError` (e.g. `.notLoggedIn`) on failure.
+    func captureTerminalLogin(for id: String) throws {
+        let blob = try ClaudeCodeCredentialBridge.captureLive()
+        ClaudeCodeCredentialBridge.storeSnapshot(blob, for: id)
+        refreshTerminalSyncState()
+    }
+
+    /// On switch: refresh the outgoing account's snapshot from the live item (only if it was
+    /// already linked, so we never mislabel a login the app didn't capture), then restore the
+    /// incoming account's snapshot to the live item. No-ops when the feature is off/unsupported
+    /// or the incoming account has no snapshot (leaving the live login untouched).
+    private func syncTerminalOnSwitch(from previousId: String?, to newId: String) {
+        guard syncTerminalLoginEnabled, ClaudeCodeCredentialBridge.isSupported else { return }
+        if let previousId, ClaudeCodeCredentialBridge.loadSnapshot(for: previousId) != nil,
+           let live = try? ClaudeCodeCredentialBridge.captureLive() {
+            ClaudeCodeCredentialBridge.storeSnapshot(live, for: previousId)
+        }
+        guard let blob = ClaudeCodeCredentialBridge.loadSnapshot(for: newId) else { return }
+        try? ClaudeCodeCredentialBridge.writeLive(blob)
     }
 
     func rename(_ id: String, to newLabel: String) {
@@ -150,12 +219,14 @@ final class AccountStore: ObservableObject {
         if id != Account.demoId {
             KeychainHelper.delete(key: Self.keychainKey(for: id))
         }
+        ClaudeCodeCredentialBridge.deleteSnapshot(for: id)
         notificationManager.reset(accountId: id)
         persistAccounts()
         if activeId == id {
             activeId = accounts.first?.id
             persistActiveId()
         }
+        refreshTerminalSyncState()
     }
 
     /// Stores the latest successful usage payload for `id`. Used by `UsageViewModel`
@@ -172,6 +243,7 @@ final class AccountStore: ObservableObject {
     func removeAll() {
         for account in accounts where !account.isDemo {
             KeychainHelper.delete(key: Self.keychainKey(for: account.id))
+            ClaudeCodeCredentialBridge.deleteSnapshot(for: account.id)
         }
         accounts.removeAll()
         peeks.removeAll()
@@ -181,6 +253,7 @@ final class AccountStore: ObservableObject {
         persistActiveId()
         notificationManager.reset()
         UserDefaults.standard.removeObject(forKey: Self.schemaKey)
+        refreshTerminalSyncState()
     }
 
     private func upsert(orgInfo: OrgInfo, sessionKey: String) -> Account {

@@ -30,6 +30,7 @@ struct PopoverView: View {
     @State private var showAddSheet: Bool = false
     @State private var showRemoveConfirm: Bool = false
     @State private var showInactive: Bool = false
+    @State private var terminalSwitchNote: String? = nil
 
     /// A flattened, render-ready row for the popover usage list. Built fresh each
     /// pass so we partition into active/idle without keeping any extra view-model state.
@@ -62,6 +63,9 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
                 .padding(.bottom, 14)
+
+            terminalSwitchBanner
+            failoverPromptBanner
 
             if viewModel.isUnauthorized {
                 expiredBanner
@@ -117,6 +121,7 @@ struct PopoverView: View {
             if let plan = viewModel.planDisplayName {
                 planBadge(plan)
             }
+            terminalStatusGlyph
             Spacer()
             Button(action: { viewModel.showSettingsWindow = true }) {
                 Image(systemName: "gear")
@@ -140,7 +145,7 @@ struct PopoverView: View {
             // Each account row — click to set active
             ForEach(accountStore.accounts) { account in
                 Button {
-                    viewModel.setActiveAccount(account.id)
+                    switchAccount(to: account.id)
                 } label: {
                     HStack {
                         if account.id == accountStore.activeId {
@@ -178,6 +183,96 @@ struct PopoverView: View {
         .menuIndicator(.hidden)
         .layoutPriority(0)
         .help(accountStore.activeAccount?.label ?? "")
+    }
+
+    /// Terminal-link status indicator in the header — green when switching accounts will
+    /// re-point the `claude` CLI for the active account, grey when it still needs setup.
+    /// Mirrors the menu-bar status dot. Hidden when the sync feature is off/unsupported.
+    @ViewBuilder
+    private var terminalStatusGlyph: some View {
+        switch accountStore.terminalSyncState {
+        case .off:
+            EmptyView()
+        case .connected, .needsSetup:
+            let connected = accountStore.terminalSyncState == .connected
+            Button(action: { viewModel.showSettingsWindow = true }) {
+                Image(systemName: "terminal.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(connected ? .green : .secondary)
+            }
+            .buttonStyle(.plain)
+            .help(connected
+                  ? "Terminal sync on — switching accounts re-points `claude` to this account"
+                  : "Terminal sync on, but this account isn't linked yet. Run `claude login`, then capture it in Settings → Accounts.")
+        }
+    }
+
+    /// Switches the active account and, when terminal sync is on, surfaces a transient
+    /// note if a `claude` session is running (it won't pick up the swap until restarted).
+    private func switchAccount(to id: String) {
+        guard id != accountStore.activeId else { return }
+        viewModel.setActiveAccount(id)
+        guard accountStore.syncTerminalLoginEnabled,
+              ClaudeCodeCredentialBridge.isSupported,
+              accountStore.terminalLoginLinked(for: id) else { return }
+        if accountStore.isClaudeRunning() {
+            terminalSwitchNote = "Terminal switched. Start a new `claude` session to use this account — running sessions keep the old login."
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                terminalSwitchNote = nil
+            }
+        }
+    }
+
+    /// Confirm-mode failover prompt: appears when the active account is nearly out and
+    /// the user opted to be asked before switching. Mirrors the auto-jump notification.
+    @ViewBuilder
+    private var failoverPromptBanner: some View {
+        if let p = viewModel.pendingFailover {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 11))
+                        .foregroundColor(.accent)
+                    Text("\(p.fromLabel) is at \(p.fromPercent)%. Switch to \(p.toLabel)?")
+                        .font(.caption2)
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack(spacing: 8) {
+                    Button("Switch to \(p.toLabel)") { viewModel.acceptFailover() }
+                        .controlSize(.small)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accent)
+                    Button("Not now") { viewModel.dismissFailover() }
+                        .controlSize(.small)
+                }
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accent.opacity(0.08))
+            .cornerRadius(6)
+            .padding(.bottom, 6)
+        }
+    }
+
+    @ViewBuilder
+    private var terminalSwitchBanner: some View {
+        if let note = terminalSwitchNote {
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 11))
+                    .foregroundColor(.accent)
+                Text(note)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accent.opacity(0.08))
+            .cornerRadius(6)
+            .padding(.bottom, 6)
+        }
     }
 
     /// Trims overly verbose org labels like `"someone@example.com's Organization"`

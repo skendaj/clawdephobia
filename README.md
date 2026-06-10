@@ -114,6 +114,29 @@ Manage every Claude account you have — personal, work, client, enterprise — 
 - **Auto-switch on add** — pasting a new session key immediately makes that account active so you can confirm it works
 - **Add accounts from anywhere** — from the popover switcher's "Add account…" sheet or from Settings → Accounts
 
+### Switch the Terminal Too (Claude Code CLI)
+
+Switching the active account can also re-point the `claude` CLI in your terminal to that account — a *real* switch, not just a change in what the app displays.
+
+- **How it works** — the `claude` CLI keeps its login in the macOS Keychain (`Claude Code-credentials`). Clawdephobia snapshots that login per account and restores the right one when you switch. Because session keys (claude.ai cookies) and the CLI's OAuth tokens are different credentials, you link each account once: run `claude login` for it, then click the **terminal icon** on its row in Settings → Accounts to capture the login
+- **Opt-in** — turn on *"Switch the terminal login when I change accounts"* in Settings → Accounts. Off by default, since it rewrites another app's Keychain item (you'll get a one-time macOS "Always Allow" prompt)
+- **Auto-capture** — once an account is linked, switching away from it re-snapshots its current login so token refreshes are preserved; switching to a linked account restores it
+- **Running sessions** — an already-running `claude` session keeps its old login until you start a new one. The popover shows a brief reminder when that applies
+- **Status logo** — a small terminal glyph appears in the **menu bar** and the **popover header** whenever sync is on: **green** when the active account is linked (switching will really re-point `claude`) and **grey** when it still needs `claude login` + capture — the same traffic-light idea as the usage status dot
+- **Direct-download only** — this feature needs to read another app's Keychain item, which the Mac App Store sandbox forbids. It's available in the **direct-download (DMG)** build only; in the App Store build the controls are hidden
+
+### Auto-Switch When Usage Runs Low
+
+When the active account is nearly out (either its 5-hour or 7-day usage crosses **95%**), Clawdephobia can move you to the account with the most headroom — and, if terminal sync is on and that account is linked, take the `claude` CLI with it.
+
+- **Picks the freshest account** — jumps to whichever of your other accounts has the lowest usage (most room left)
+- **Your call, three ways** — set the behaviour in Settings → Accounts:
+  - **Notify me (manual)** — *default.* A heads-up notification; you switch when ready
+  - **Ask to switch** — a one-tap *"Switch to Personal?"* prompt in the popover (plus a notification to open the app)
+  - **Switch automatically** — hands-free; it switches and tells you it did
+  - **Off** — no failover at all
+- **No flapping** — alerts once per over-threshold episode and resets when usage recovers or you switch accounts
+
 ### Enterprise / Pay-as-You-Go
 
 Enterprise plans on Claude bill by credits instead of percentage-capped windows. Clawdephobia detects this automatically and switches to a credits view:
@@ -272,6 +295,19 @@ The app uses an **AppKit + SwiftUI hybrid** approach — `NSStatusItem` for the 
 - Legacy single-account installs auto-migrate on first launch (gated by `clawdephobia.accounts_schema_v1`) — the old `session_key` Keychain entry is reassigned to its org UUID after fetching it once
 - In-memory `snapshots: [accountId: ClawdUsageData]` survives switches so flipping back to an account paints instantly. Reset on app relaunch
 - `isEnterprise` discriminator: `extraCreditsEnabled && !hasSessionLimit && !hasWeeklyLimit` — keeps Pro plans with `extra_usage` enabled from being mistaken for true credits-only accounts
+
+**Terminal sync internals**
+
+- `ClaudeCodeCredentialBridge` reads/writes the CLI's live Keychain item (`Claude Code-credentials`, account = Unix user) and stores per-account snapshots under Clawdephobia's own service as `cc_credentials.<accountId>`
+- `AccountStore.setActive` performs the swap: it re-snapshots the outgoing account (only if already linked) then restores the incoming account's snapshot. Gated by the `clawdephobia.sync_terminal_login` opt-in and `ClaudeCodeCredentialBridge.isSupported` (false under the App Store sandbox, detected via `APP_SANDBOX_CONTAINER_ID`)
+- Snapshots are removed alongside the session key on account remove / Reset All Data
+- `AccountStore.terminalSyncState` (`off` / `needsSetup` / `connected`) is published and drives the menu-bar + popover status glyph; recomputed on switch, capture, remove, reset, and toggle change
+
+**Auto-switch (failover) internals**
+
+- `UsageViewModel.evaluateFailover()` runs after each fresh fetch: if `max(session, weekly) ≥ 0.95` for the active account, it picks the other account with the lowest peak usage and acts per `clawdephobia.failover_mode` (0 off / 1 notify / 2 confirm / 3 automatic; default 1)
+- Confirm mode sets `pendingFailover`, surfaced as a popover prompt; automatic calls `AccountStore.setActive` directly (which also performs the terminal swap when enabled)
+- Throttled by `failoverAlertedAccountId` so it fires once per over-threshold episode; cleared when usage recovers or the active account changes
 
 ## Privacy
 
