@@ -66,7 +66,7 @@ echo "Quarantine attributes stripped."
 
 # Code sign with Mac App Store certificate + sandbox entitlements
 echo "Signing with: ${APP_SIGNING_IDENTITY}"
-codesign --force --options runtime --entitlements Resources/Clawdephobia-MAS.entitlements --sign "${APP_SIGNING_IDENTITY}" "${APP_BUNDLE}"
+codesign --force --options runtime --entitlements Resources/Claudephobia-MAS.entitlements --sign "${APP_SIGNING_IDENTITY}" "${APP_BUNDLE}"
 echo "Signed."
 
 # Verify signature
