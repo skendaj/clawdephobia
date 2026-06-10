@@ -7,13 +7,16 @@ enum MenuBarRenderer {
     static func createImage(sessionPercent: Double, weeklyPercent: Double,
                             isPacingWarning: Bool, isServiceDown: Bool = false,
                             menuBarProgressStyle: Int = 0,
-                            isEnterprise: Bool = false, enterprisePercent: Double = 0) -> NSImage {
+                            isEnterprise: Bool = false, enterprisePercent: Double = 0,
+                            terminalSyncActive: Bool = false, terminalConnected: Bool = false) -> NSImage {
         let height: CGFloat = 16
 
         let flameImg: NSImage? = isPacingWarning ? createFlameImage() : nil
         let downImg: NSImage? = isServiceDown ? createServiceDownImage() : nil
-        let trailingImg = downImg ?? flameImg
-        let trailingSpace: CGFloat = trailingImg.map { $0.size.width + 2 } ?? 0
+        let terminalImg: NSImage? = terminalSyncActive ? createTerminalImage(connected: terminalConnected) : nil
+        // Trailing glyphs, laid out left-to-right after the gauges: status/flame, then terminal.
+        let trailingImgs: [NSImage] = [downImg ?? flameImg, terminalImg].compactMap { $0 }
+        let trailingSpace: CGFloat = trailingImgs.reduce(0) { $0 + $1.size.width + 2 }
 
         let baseWidth: CGFloat
         if isEnterprise {
@@ -40,9 +43,11 @@ enum MenuBarRenderer {
                         isServiceDown: isServiceDown)
         }
 
-        if let trailing = trailingImg {
+        var trailingX = baseWidth + 2
+        for trailing in trailingImgs {
             let y = (height - trailing.size.height) / 2
-            trailing.draw(at: NSPoint(x: baseWidth + 2, y: y), from: .zero, operation: .sourceOver, fraction: 1.0)
+            trailing.draw(at: NSPoint(x: trailingX, y: y), from: .zero, operation: .sourceOver, fraction: 1.0)
+            trailingX += trailing.size.width + 2
         }
 
         image.unlockFocus()
@@ -123,6 +128,30 @@ enum MenuBarRenderer {
         img.lockFocus()
         NSColor.systemRed.setFill()
         NSBezierPath(ovalIn: NSRect(origin: .zero, size: size)).fill()
+        img.unlockFocus()
+        return img
+    }
+
+    // MARK: - Terminal status glyph
+
+    /// Small terminal glyph drawn when "switch the terminal too" is enabled. Green when the
+    /// active account has a linked CLI login (a real switch will happen), grey when it still
+    /// needs `claude login` + capture — mirrors the traffic-light status dot.
+    private static func createTerminalImage(connected: Bool) -> NSImage? {
+        let tint: NSColor = connected ? .systemGreen : .systemGray
+        let sizeConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
+        let colorConfig = NSImage.SymbolConfiguration(paletteColors: [tint])
+        let config = sizeConfig.applying(colorConfig)
+
+        if let symbol = NSImage(systemSymbolName: "terminal.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(config) {
+            return symbol
+        }
+        let size = NSSize(width: 8, height: 8)
+        let img = NSImage(size: size)
+        img.lockFocus()
+        tint.setFill()
+        NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
         img.unlockFocus()
         return img
     }

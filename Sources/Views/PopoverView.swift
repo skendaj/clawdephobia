@@ -120,6 +120,7 @@ struct PopoverView: View {
             if let plan = viewModel.planDisplayName {
                 planBadge(plan)
             }
+            terminalStatusGlyph
             Spacer()
             Button(action: { viewModel.showSettingsWindow = true }) {
                 Image(systemName: "gear")
@@ -181,6 +182,28 @@ struct PopoverView: View {
         .menuIndicator(.hidden)
         .layoutPriority(0)
         .help(accountStore.activeAccount?.label ?? "")
+    }
+
+    /// Terminal-link status indicator in the header — green when switching accounts will
+    /// re-point the `claude` CLI for the active account, grey when it still needs setup.
+    /// Mirrors the menu-bar status dot. Hidden when the sync feature is off/unsupported.
+    @ViewBuilder
+    private var terminalStatusGlyph: some View {
+        switch accountStore.terminalSyncState {
+        case .off:
+            EmptyView()
+        case .connected, .needsSetup:
+            let connected = accountStore.terminalSyncState == .connected
+            Button(action: { viewModel.showSettingsWindow = true }) {
+                Image(systemName: "terminal.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(connected ? .green : .secondary)
+            }
+            .buttonStyle(.plain)
+            .help(connected
+                  ? "Terminal sync on — switching accounts re-points `claude` to this account"
+                  : "Terminal sync on, but this account isn't linked yet. Run `claude login`, then capture it in Settings → Accounts.")
+        }
     }
 
     /// Switches the active account and, when terminal sync is on, surfaces a transient

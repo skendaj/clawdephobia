@@ -533,6 +533,9 @@ struct SettingsView: View {
                 Toggle("Switch the terminal login when I change accounts", isOn: $syncTerminalLogin)
                     .font(.caption)
                     .toggleStyle(.checkbox)
+                    .onChange(of: syncTerminalLogin) { _ in
+                        accountStore.refreshTerminalSyncState()
+                    }
 
                 Text("Run `claude login` for an account in Terminal, then click the terminal icon on its row to link it. Switching accounts will then re-point `claude` to that login.")
                     .font(.caption2)
