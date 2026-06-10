@@ -534,10 +534,13 @@ struct SettingsView: View {
                     .font(.caption)
                     .toggleStyle(.checkbox)
 
-                Text("Run `claude login` for an account in Terminal, then click the terminal icon on its row to link it. Switching accounts will then re-point `claude` to that login. Already-running `claude` sessions keep their old login until restarted.")
+                Text("Run `claude login` for an account in Terminal, then click the terminal icon on its row to link it. Switching accounts will then re-point `claude` to that login.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                caveat("Already-open `claude` sessions don't change — only ones you start after switching. Just open a fresh terminal.")
+                caveat("Available in the direct-download (DMG) version only — the Mac App Store sandbox doesn't allow touching the CLI's login, so it's hidden there.")
 
                 if let captureError {
                     Text(captureError)
@@ -551,6 +554,19 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    /// A muted "good to know" line with a leading info dot, used for the terminal-sync caveats.
+    private func caveat(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 5) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 9))
+                .foregroundColor(.secondary)
+            Text(text)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
